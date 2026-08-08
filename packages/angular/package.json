@@ -1,6 +1,6 @@
 {
   "name": "@softwarity/livewire",
-  "version": "0.1.1",
+  "version": "0.0.0",
   "description": "Live query synchronisation for Angular: subscribe to a query over one WebSocket, get its answer and every answer after it. Virtual-scroll data source included.",
   "keywords": [
     "angular",
@@ -38,7 +38,7 @@
     "rxjs": "^7.5.0"
   },
   "dependencies": {
-    "@softwarity/livewire-protocol": "0.1.1",
+    "@softwarity/livewire-protocol": "0.0.0",
     "tslib": "^2.6.2"
   },
   "devDependencies": {
@@ -56,6 +56,6 @@
     "rxjs": "^7.8.1",
     "typescript": "~5.6.0",
     "zone.js": "^0.15.0",
-    "@softwarity/livewire-mock": "0.1.0"
+    "@softwarity/livewire-mock": "0.0.0"
   }
 }

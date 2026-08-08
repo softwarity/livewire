@@ -1,11 +1,15 @@
 name: Create Tag/Release
 run-name: ${{ github.actor }} release ${{ github.repository }}
 
-# One action, two tags. The wire contract is described in every package and in
-# the Go module, so they carry one version between them: `v1.2.3` publishes the
-# npm packages, `go/v1.2.3` is what `go get` looks for on a module in a
+# One run, two tags. The wire contract is described in every package and in the
+# Go module, so they carry one version between them: `v1.2.3` publishes the npm
+# packages, `go/v1.2.3` is what `go get` looks for on a module in a
 # subdirectory. Posting one without the other is how a server and a client end
 # up disagreeing about the protocol they share.
+#
+# The bump, the notes and the GitHub Release are `softwarity/release-flow`'s
+# business, as everywhere else. What is specific to this repository - one
+# version across four packages, and a second tag - is arranged around it.
 on:
   workflow_dispatch:
     inputs:
@@ -16,49 +20,71 @@ on:
         default: patch
         options: [patch, minor, major]
 
+permissions:
+  contents: write
+
 jobs:
   create-release:
     runs-on: ubuntu-latest
     steps:
-      # Checked out with the default token; the tags below are pushed with the
-      # PAT, because a tag pushed by GITHUB_TOKEN does not trigger tag.yml.
+      # The PAT is what the action pushes with: a tag pushed by GITHUB_TOKEN
+      # triggers no workflow, and tag.yml is what publishes to npm.
+      # fetch-depth: 0 so the tags are visible.
       - uses: actions/checkout@v5
         with:
-          persist-credentials: false
+          fetch-depth: 0
+          token: ${{ secrets.PAT_TOKEN }}
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
-      - name: Verify NPM token is valid
+          cache: npm
+
+      # Checked before anything is tagged: a token that expired turns a release
+      # into a tag nobody can publish, and the tag is the hard part to undo.
+      - name: Verify the npm token still works
         run: |
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
           npm whoami --registry https://registry.npmjs.org/
-      - name: Configure git identity
+
+      - run: npm ci
+
+      # Before the build, not after: the doc site links the built packages, and
+      # what it locks is the version written in their build output. Bumping
+      # after building would leave that output a version behind, and the next
+      # `npm ci` in docs would refuse the lockfile.
+      #
+      # The root manifest is left alone - it is what the action bumps, and what
+      # it reads to know the version before.
+      - name: Put every package on the version this release carries
         run: |
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-      - name: Bump every package to the same version
-        id: version
-        run: |
-          CURRENT=$(node -p "require('./package.json').version")
           NEXT=$(node -p "
-            const [major, minor, patch] = '$CURRENT'.split('.').map(Number);
+            const [major, minor, patch] = require('./package.json').version.split('.').map(Number);
             ({ major: [major + 1, 0, 0], minor: [major, minor + 1, 0], patch: [major, minor, patch + 1] })['${{ inputs.bump }}'].join('.')
           ")
           node scripts/version-all.mjs "$NEXT"
-          echo "next=$NEXT" >> "$GITHUB_OUTPUT"
-      - name: Open the next section in the release notes
+          npm install --package-lock-only --ignore-scripts
+
+      - run: npm run build
+      - run: npm test
+
+      # Staged rather than committed: release-flow commits the index as it
+      # finds it, so all of this lands in the release commit and the tag
+      # carries it.
+      - name: Stage the version, and the lockfiles that record it
         run: |
-          NEXT="${{ steps.version.outputs.next }}"
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$NEXT"
-          AFTER="$MAJOR.$MINOR.$((PATCH + 1))"
-          sed -i "s/^# Release Notes$/# Release Notes\n\n## $AFTER\n\n---/" RELEASE_NOTES.md
-      - name: Commit and tag
+          npm install --package-lock-only --ignore-scripts --prefix docs
+          git add packages/*/package.json package-lock.json docs/package-lock.json
+
+      - id: release
+        uses: softwarity/release-flow@v1
+        with:
+          bump: ${{ inputs.bump }}
+
+      # Go has no registry: the tag is the publication, and a module in a
+      # subdirectory is fetched under `go/vX.Y.Z`. Same commit, same number.
+      # Annotated, because a lightweight tag is skipped by `--follow-tags`.
+      - name: Tag the Go module on the same commit
         run: |
-          NEXT="${{ steps.version.outputs.next }}"
-          git add -A
-          git commit -m "v$NEXT"
-          git tag "v$NEXT"
-          git tag "go/v$NEXT"
-      - name: Push commit and both tags
-        run: |
-          git push "https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:main --follow-tags
+          TAG="go/v${{ steps.release.outputs.version }}"
+          git tag -a "$TAG" -m "$TAG"
+          git push origin "$TAG"

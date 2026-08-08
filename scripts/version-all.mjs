@@ -25,12 +25,20 @@ const packages = ['packages/protocol', 'packages/mock', 'packages/nestjs', 'pack
 );
 const names = packages.map((dir) => JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).name);
 
-for (const dir of [...packages, '.']) {
+// The root manifest is not in the list: the release action owns it - it is what
+// it bumps, and what it reads to know the version before. This script's job is
+// to carry that number to the packages.
+for (const dir of packages) {
   const path = join(dir, 'package.json');
   const manifest = JSON.parse(readFileSync(path, 'utf8'));
   manifest.version = version;
   // Pinned, not ranged: two packages of one contract move together or not at all.
-  for (const field of ['dependencies', 'peerDependencies']) {
+  //
+  // `devDependencies` included, and it is not a detail: the mock is a
+  // devDependency of the two servers, and a version left behind there stops
+  // matching the workspace - npm then looks for it in the registry, where it is
+  // not, and every `npm ci` in the repository fails at once.
+  for (const field of ['dependencies', 'devDependencies', 'peerDependencies']) {
     for (const name of names) {
       if (manifest[field]?.[name]) {
         manifest[field][name] = version;

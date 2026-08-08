@@ -64,7 +64,11 @@
               [routerLinkActiveOptions]="{ exact: link.path === '/' }"
               class="side-link"
             >
-              <mat-icon>{{ link.icon }}</mat-icon>
+              @if (link.brand) {
+                <app-brand class="side-mark" [brand]="link.brand" />
+              } @else {
+                <mat-icon>{{ link.icon }}</mat-icon>
+              }
               <span>{{ link.label }}</span>
             </a>
           }

@@ -1,10 +1,12 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { MatIconModule } from '@angular/material/icon';
+import { BrandComponent } from '../brand/brand.component';
 import { CodeComponent } from '../code/code.component';
 
 @Component({
   selector: 'app-getting-started',
-  imports: [CodeComponent, RouterLink],
+  imports: [CodeComponent, RouterLink, MatIconModule, BrandComponent],
   styles: [
     `
       .features {
@@ -30,9 +32,13 @@ import { CodeComponent } from '../code/code.component';
         text-decoration: none;
         transform: translateY(-1px);
       }
+      /* A brand mark and a Material icon are both sized from here. */
       .feature-icon {
-        font-size: 1.3rem;
+        font-size: 1.4rem;
+        width: 1.4rem;
+        height: 1.4rem;
         line-height: 1;
+        color: var(--accent-purple);
       }
       .feature-title {
         font-weight: 600;
@@ -68,32 +74,32 @@ import { CodeComponent } from '../code/code.component';
 
     <div class="features">
       <a routerLink="/protocol" class="feature-card">
-        <span class="feature-icon">🔀</span>
+        <mat-icon class="feature-icon">swap_horiz</mat-icon>
         <span class="feature-title">One protocol</span>
         <span class="feature-desc">Two client frames, three server frames, and a normative spec.</span>
       </a>
       <a routerLink="/nestjs" class="feature-card">
-        <span class="feature-icon">🪺</span>
+        <app-brand class="feature-icon" brand="nestjs" />
         <span class="feature-title">NestJS server</span>
         <span class="feature-desc">A base class, a decorator, and your query. The rest is done.</span>
       </a>
       <a routerLink="/go" class="feature-card">
-        <span class="feature-icon">🐹</span>
+        <app-brand class="feature-icon" brand="go" />
         <span class="feature-title">Go server</span>
         <span class="feature-desc">The same protocol, one <code>http.Handler</code>, no reflection.</span>
       </a>
       <a routerLink="/angular" class="feature-card">
-        <span class="feature-icon">🅰️</span>
+        <app-brand class="feature-icon" brand="angular" />
         <span class="feature-title">Angular client</span>
         <span class="feature-desc">Signals, one socket per tab, a virtual-scroll data source.</span>
       </a>
       <a routerLink="/conformance" class="feature-card">
-        <span class="feature-icon">✅</span>
+        <mat-icon class="feature-icon">fact_check</mat-icon>
         <span class="feature-title">Conformance suite</span>
         <span class="feature-desc">The scenarios all three servers pass, run in CI.</span>
       </a>
       <a routerLink="/demo" class="feature-card">
-        <span class="feature-icon">⚡</span>
+        <mat-icon class="feature-icon">bolt</mat-icon>
         <span class="feature-title">Live demo</span>
         <span class="feature-desc">The real client against a server running in this page.</span>
       </a>

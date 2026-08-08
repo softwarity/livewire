@@ -182,6 +182,14 @@
     height: 18px;
     color: var(--accent-purple);
   }
+
+  // A framework's own mark, on the three pages that document one. Sized like
+  // the Material icons beside it; its colour comes with it.
+  .side-mark {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
 }
 
 .content {
