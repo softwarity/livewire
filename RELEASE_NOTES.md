@@ -2,6 +2,10 @@
 
 ## NEXT RELEASE
 
+### Fixes
+
+- **`<lw-live-indicator>` sits where it belongs and breathes instead of pulsing.** The host now centres itself, so a row that aligns its children to the top no longer leaves the dot stranded above the text beside it. And the animation is a slow fade rather than a jump every second: the dot says the socket is up, which is the quiet state of a working screen — something that flashes reads as a warning and pulls the eye off the list.
+
 ---
 
 ## 0.2.1

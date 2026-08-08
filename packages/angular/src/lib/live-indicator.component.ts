@@ -37,6 +37,12 @@ const ACKNOWLEDGE_MS = 700;
     `
       :host {
         display: inline-flex;
+        // Centred on its own line and beside whatever it sits next to. A dot is
+        // small enough that a row aligning its children to the top leaves it
+        // stranded above the text it belongs to.
+        align-items: center;
+        align-self: center;
+        vertical-align: middle;
       }
       .lw-indicator {
         display: inline-flex;
@@ -63,18 +69,23 @@ const ACKNOWLEDGE_MS = 700;
         background: currentColor;
       }
       .lw-dot.lw-beat {
-        animation: lw-beat 1s ease-in-out infinite;
+        animation: lw-beat 2.4s ease-in-out infinite;
       }
       .lw-dot.lw-turn {
         animation: lw-turn 0.5s ease-out;
       }
+      // A breath, not a pulse. The dot says the socket is up, which is the
+      // quiet state of a working screen: something that jumps every second
+      // reads as a warning and pulls the eye away from the list.
       @keyframes lw-beat {
         0%,
-        90% {
+        100% {
+          opacity: 1;
           transform: scale(1);
         }
-        45% {
-          transform: scale(1.35);
+        50% {
+          opacity: 0.45;
+          transform: scale(0.88);
         }
       }
       @keyframes lw-turn {
