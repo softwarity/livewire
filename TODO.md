@@ -150,13 +150,25 @@ il faudrait de toute façon un `wss` valide. Le faux serveur est
 de conformité tournent contre lui. Une démo qui ment est pire que pas de démo ;
 c'est la suite qui dit laquelle on a.
 
-`docs/tsconfig.json` mappe `@softwarity/livewire*` sur les **sources** des
-paquets, pas sur une version publiée : une divergence casse le build de la doc
-au lieu de laisser en ligne une page qui démontre le comportement du mois
-dernier. Corollaire à ne pas défaire : les `paths` épinglent aussi `@angular/*`
-sur `docs/node_modules`, sinon les sources de la lib se compilent avec l'Angular
-du site et se *bundlent* avec celui du workspace (v19), ce qui produit des
-appels à des instructions que le runtime chargé n'exporte pas.
+`docs/` consomme les paquets **comme une application le ferait** : des
+dépendances `file:` vers leur sortie de build, pas vers leurs sources. Le
+workflow construit donc les paquets avant le site, et une divergence casse ce
+build au lieu de laisser en ligne une page qui démontre le comportement du mois
+dernier — en prime, ce qui est démontré est l'artefact publié, pas le source.
+
+Pourquoi pas les sources directement (essayé, abandonné) : les fichiers de
+`packages/angular/src` résolvent leurs imports nus depuis *leur* emplacement,
+donc `livewire/node_modules` — l'Angular 19 des devDependencies de la lib — alors
+que le site compile en 21. Le compilateur émet des instructions que le runtime
+chargé n'exporte pas, et un `paths` sur `@angular/*` ne rattrape pas les
+sous-chemins (`@angular/cdk/collections` n'existe pas comme dossier, seulement
+comme export). D'où `preserveSymlinks: true` dans `docs/angular.json` : la
+résolution passe par le lien, donc par `docs/node_modules`.
+
+`@softwarity/livewire-protocol` et `-mock` sont publiés en CommonJS, ce qui vaut
+un avertissement de *bailout* au bundler (contourné par
+`allowedCommonJsDependencies`). Les passer en ESM — ou en double format — est une
+amélioration de packaging à faire un jour, pas une urgence.
 
 **Ce qui reste avant de publier** : décider du numéro (`0.1.0`), lancer
 `release.yml` (il pose `v0.1.0` **et** `go/v0.1.0`), vérifier que `NPM_TOKEN` et

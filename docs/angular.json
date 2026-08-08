@@ -17,6 +17,7 @@
             "browser": "src/main.ts",
             "polyfills": [],
             "tsConfig": "tsconfig.app.json",
+            "preserveSymlinks": true,
             "inlineStyleLanguage": "scss",
             "assets": ["src/assets"],
             "styles": ["src/styles.scss"],
@@ -26,7 +27,9 @@
               "prismjs/components/prism-typescript",
               "prismjs/components/prism-bash",
               "prismjs/components/prism-json",
-              "prismjs/components/prism-go"
+              "prismjs/components/prism-go",
+              "@softwarity/livewire-protocol",
+              "@softwarity/livewire-mock"
             ]
           },
           "configurations": {

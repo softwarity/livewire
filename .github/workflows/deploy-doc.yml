@@ -34,14 +34,19 @@ jobs:
         with:
           node-version: '22'
 
+      # The doc site consumes the packages the way an application does: it
+      # depends on their build output, not on their sources. So the packages
+      # are built first - and a divergence breaks this build instead of leaving
+      # a page online that demonstrates last month's behaviour.
+      - name: Build the packages the demo runs on
+        run: |
+          npm ci
+          npm run build
+
       - name: Install doc-site deps
         working-directory: docs
         run: npm ci
 
-      # The demo compiles the library from source - see docs/tsconfig.json. A
-      # divergence between what is documented and what is published therefore
-      # breaks this build rather than shipping a page that demonstrates last
-      # month's behaviour.
       - name: Build doc-site for GitHub Pages
         working-directory: docs
         run: npm run build -- --base-href /livewire/

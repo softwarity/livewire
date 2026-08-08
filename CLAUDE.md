@@ -101,11 +101,13 @@ Chacune a coûté une session de débogage ou une discussion déjà eue.
 - Le faux serveur est **dans le jeu de tests**, pas à côté : une démo qui ment
   est pire que pas de démo. Écrire la conformité contre lui a trouvé trois vrais
   défauts le soir même.
-- `docs/tsconfig.json` mappe `@softwarity/livewire*` sur les **sources**. Les
-  `paths` épinglent aussi `@angular/*` sur `docs/node_modules` — sans ça les
-  sources se compilent avec l'Angular du site et se *bundlent* avec celui du
-  workspace (v19), d'où des appels à des instructions que le runtime n'exporte
-  pas (avertissement esbuild `will always be undefined`).
+- `docs/` dépend des paquets en `file:` vers leur **build**, pas vers leurs
+  sources, et `deploy-doc.yml` construit les paquets avant le site. Compiler les
+  sources depuis `docs/` a été essayé et abandonné : leurs imports nus se
+  résolvent depuis `livewire/node_modules` (Angular 19) pendant que le site
+  compile en 21, et un `paths` sur `@angular/*` ne rattrape pas les sous-chemins
+  (`@angular/cdk/collections` n'est pas un dossier). D'où aussi
+  `preserveSymlinks: true` dans `docs/angular.json`.
 - Les extraits de code sont passés en **`[code]="champ"`**, pas en contenu
   projeté : un template Angular oblige à échapper `{`, `@`, `<` dans chaque
   extrait.
@@ -137,6 +139,7 @@ npm test -w @softwarity/livewire # un seul
 
 cd go && go vet ./... && go test -race ./...
 
+# Le site consomme les paquets construits : `npm run build` à la racine d'abord.
 cd docs && npm ci && npm start   # le site, avec la démo, sur :4200
 cd docs && npm run build         # ce que fait deploy-doc.yml (avec --base-href /livewire/)
 ```

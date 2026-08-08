@@ -12,22 +12,7 @@
     "experimentalDecorators": true,
     "importHelpers": true,
     "target": "ES2022",
-    "module": "preserve",
-    // The demo compiles the library from source. Pointing at the sources rather
-    // than at a published build is what makes a divergence break this build,
-    // instead of leaving the page demonstrating last month's behaviour.
-    "paths": {
-      "@softwarity/livewire": ["../packages/angular/src/public-api.ts"],
-      "@softwarity/livewire-protocol": ["../packages/protocol/src/index.ts"],
-      "@softwarity/livewire-mock": ["../packages/mock/src/index.ts"],
-      // Pinned, because those sources sit next to the workspace's own
-      // node_modules: resolved from where they live, the library would compile
-      // against this site's Angular and then bundle the workspace's, which
-      // leaves calls to instructions the loaded runtime does not export.
-      "@angular/*": ["./node_modules/@angular/*"],
-      "rxjs": ["./node_modules/rxjs"],
-      "rxjs/*": ["./node_modules/rxjs/*"]
-    }
+    "module": "preserve"
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,
