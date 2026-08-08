@@ -229,7 +229,7 @@ interface Traffic {
           <div
             *cdkVirtualFor="let row of source; let index = index"
             class="row"
-            [class.fresh]="!!source.revision() && source.fresh(row?.id)"
+            [class.fresh]="source.fresh(row?.id)"
           >
             @if (row) {
               <span class="flight">{{ row.flight }}</span>

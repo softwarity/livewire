@@ -265,7 +265,6 @@ export class MessagesComponent implements OnDestroy {
     (total) => this.total.set(total),  // the list length the server reports
     () => this.topic.resync(),         // a gap in the sequence: ask again
     100,                               // rows per window - see 4.4
-    inject(ChangeDetectorRef),         // what repaints a zoneless screen
   );
 
   constructor() {
@@ -307,14 +306,13 @@ export class MessagesComponent implements OnDestroy {
 
 Three things in there are load-bearing and look like they are not:
 
-- **The `ChangeDetectorRef` is not decoration.** A zoneless application
-  schedules nothing when a frame lands in a socket callback: the data is right
-  and the screen is wrong. The data source calls `markForCheck()` on every
-  publication, which marks the view dirty *and* notifies the zoneless scheduler.
-  Cannot inject one — a source built outside an injection context? Then read
-  `source.revision()` somewhere in the template instead
-  (`[class.fresh]="source.revision() && source.fresh(row?.id)"` does it). One of
-  the two is required; both is harmless.
+- **The data source is built in a component field**, and that is not a style
+  choice: it injects that view's `ChangeDetectorRef` and calls `markForCheck()`
+  on every publication, which marks the view dirty *and* notifies the zoneless
+  scheduler. Without it a frame landing in a socket callback schedules nothing —
+  the data is right and the screen is wrong. Built outside an injection context
+  it throws, which is the intended answer: a data source with no view to repaint
+  has nobody to answer.
 - **`itemSize`, `minBufferPx`, `maxBufferPx`** must satisfy
   `maxBufferPx ≤ window × itemSize`. A buffer reaching past the window renders
   rows the window never loaded, and they stay placeholders for good.
@@ -473,7 +471,7 @@ sequence restarts — it reads as a gap, resyncs, and nothing publishes meanwhil
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Frames arrive, the screen never repaints | Zoneless, and nothing notified the scheduler | Pass `inject(ChangeDetectorRef)` to the data source, or read `revision()` in the template |
+| Frames arrive, the screen never repaints | The data source was built away from the component that shows the list | Build it in that component's own field, so the view it repaints is that one |
 | A band of rows stays placeholder forever | Viewport buffers reach past the window | `maxBufferPx ≤ window × itemSize` |
 | The renderer freezes; `subscribe` loops | Window size derived from the rendered range | Make it a constant |
 | Many sockets for one list | A client per screen, or `rxjs/webSocket` | One `provideLivewire`; the client is root-provided |
@@ -508,7 +506,7 @@ sequence restarts — it reads as a gap, resyncs, and nothing publishes meanwhil
 | `provideLivewire({ path, reconnectMs?, connect? })` | The one socket |
 | `LivewireClient` | `live` signal, `watch(id, topic, query)`, `resync(id)`, `retry()` |
 | `LiveTopic<Row>(client, topic)` | `window(query, offset, limit)`, `open(query)`, `resync()` |
-| `LiveWindowDataSource<Row>(onTotal?, onDrift?, window?, repaint?)` | `track`, `reset`, `ensure`, `at`, `length`, `pivot`, `fresh`, `revision`, `changes`, `disconnect` |
+| `LiveWindowDataSource<Row>(onTotal?, onDrift?, window?)` | `track`, `reset`, `ensure`, `at`, `length`, `pivot`, `fresh`, `changes`, `disconnect`. Built in an injection context. |
 | `LiveList<Row>` | `apply(frame)` → false on drift; `rows`, `total`, `pivot` signals |
 | `liveLabels(client, topic, query?)` | `Observable<{ id, label }[]>` |
 | `LiveIndicatorComponent` | `<lw-live-indicator>`, `--lw-live` / `--lw-down` |

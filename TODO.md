@@ -99,11 +99,11 @@ Points à ne pas perdre à la réécriture — chacun a coûté une session de d
   venues de ce couplage, dont une où il complétait sans jamais se connecter.
 - **Un id d'abonnement unique par fenêtre**, jamais réutilisé : sinon le
   `unsubscribe` de la page qu'on quitte annule l'abonnement de celle qu'on ouvre.
-- **`revision()` doit être lu dans le template.** En zoneless, une ligne arrivant
-  d'un callback socket ne déclenche aucun cycle de détection. C'est le seul geste
-  contre-intuitif de toute l'API ; la lib devrait **avertir en développement** si
-  le signal n'est jamais lu (une piste : un `effect` qui vérifie qu'il a été
-  consommé au premier repaint).
+- **Le repaint zoneless est le travail de la lib, pas de l'écran.** Une ligne
+  arrivant d'un callback socket ne déclenche aucun cycle ; le `LiveWindowDataSource`
+  s'injecte le `ChangeDetectorRef` de la vue et appelle `markForCheck()`. C'était
+  au départ un `revision()` à lire dans le template — contre-intuitif, et
+  supprimé en 0.2.0 : « si le CDR résout le problème, rends-le obligatoire ».
 - **`LiveWindowDataSource` : la fenêtre doit couvrir la plage rendue.** L'offset
   centré puis arrondi à un bloc peut tomber à côté des lignes affichées — une
   bande de lignes vides qui ne se remplit jamais, parce que l'offset calculé est

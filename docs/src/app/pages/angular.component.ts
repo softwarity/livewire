@@ -52,8 +52,8 @@ import { CodeComponent } from '../code/code.component';
       </thead>
       <tbody>
         <tr>
-          <td>Dropping the <code>ChangeDetectorRef</code> passed to the data source, since nothing reads it</td>
-          <td>A zoneless application schedules nothing when a frame lands in a socket callback: the data is right and the screen is wrong. The data source calls <code>markForCheck()</code> with it. Without one, a <code>source.revision()</code> read in the template is the other way — one of the two is required.</td>
+          <td>Building the data source somewhere tidier than the component — a service, a factory</td>
+          <td>It injects the view it repaints. In a component field it takes that component's <code>ChangeDetectorRef</code> and calls <code>markForCheck()</code> on every publication, which is what makes a zoneless screen move when a frame lands in a socket callback. Built anywhere else it throws.</td>
         </tr>
         <tr>
           <td>Sizing the window from the viewport instead of fixing it</td>
@@ -141,8 +141,7 @@ provideLivewire({ path: '', connect: () => server.connect() })`;
   readonly source = new LiveWindowDataSource<MessageRow>(
     (total) => this.total.set(total),  // the list length the server reports
     () => this.topic.resync(),         // a gap in the sequence: ask again
-    100,                               // rows per window - see 4.4
-    inject(ChangeDetectorRef),         // what repaints a zoneless screen
+    100,                               // rows per window - a transport budget
   );
 
   constructor() {

@@ -1,8 +1,7 @@
 import { DataSource } from '@angular/cdk/collections';
-import { signal } from '@angular/core';
+import { ChangeDetectorRef, inject } from '@angular/core';
 import { BehaviorSubject, Observable, Subscription } from 'rxjs';
 import { LiveList } from './live-list';
-import type { ChangeDetectorRef } from '@angular/core';
 import type { CollectionViewer, ListRange } from '@angular/cdk/collections';
 import type { LiveRow, UpdateFrame } from '@softwarity/livewire-protocol';
 
@@ -64,22 +63,25 @@ const FRESH_MS = 1000;
 export class LiveWindowDataSource<Row extends LiveRow> extends DataSource<Row | undefined> {
   private readonly published = new BehaviorSubject<(Row | undefined)[]>([]);
   private readonly viewing = new Subscription();
-  private readonly stamp = signal(0);
 
   /**
-   * Bumped on every publication, and meant to be read in the template.
+   * The view to repaint, taken from wherever this was built.
    *
    * Zoneless applications schedule nothing when a row arrives from a socket
    * callback: the table is told its data changed but no pass is ever run, and
    * the screen holds stale rows until something unrelated wakes Angular up.
+   * `markForCheck()` marks the view dirty *and* notifies the zoneless
+   * scheduler, which is exactly the missing half.
    *
-   * Two ways to say it properly, and this is the one that needs nothing from
-   * the caller: a signal the view reads. Hand a `ChangeDetectorRef` to the
-   * constructor instead and the repaint is asked for here, leaving the template
-   * to say only what it shows. (`ApplicationRef.tick()` is the third way and the
-   * wrong one - it throws when it lands inside a cycle already in progress.)
+   * Injected rather than asked for, because there is nothing to decide: build
+   * this in a component field, as one does, and the injection context is right
+   * there. Built outside one it throws, and that is the point - a data source
+   * with no view to repaint has nobody to answer.
+   *
+   * (`ApplicationRef.tick()` is the other way and the wrong one: it throws when
+   * it lands inside a cycle already in progress.)
    */
-  readonly revision = this.stamp.asReadonly();
+  private readonly repaint = inject(ChangeDetectorRef);
 
   private list = new LiveList<Row>();
   private watching: Subscription | null = null;
@@ -99,24 +101,6 @@ export class LiveWindowDataSource<Row extends LiveRow> extends DataSource<Row | 
     private readonly onDrift: () => void = () => undefined,
     /** Rows per window - see `DEFAULT_WINDOW` for how to choose one. */
     private readonly window: number = DEFAULT_WINDOW,
-    /**
-     * The view to repaint when something arrives. Optional, and the difference
-     * it makes is on the screen's side, not here.
-     *
-     * `markForCheck()` marks the view dirty *and* notifies the zoneless
-     * scheduler, so a frame landing in a socket callback gets a pass run for it.
-     * Given one, a template needs no `revision()`; given none, it does.
-     *
-     * ```ts
-     * readonly source = new LiveWindowDataSource<Row>(
-     *   (total) => this.total.set(total),
-     *   () => this.topic.resync(),
-     *   100,
-     *   inject(ChangeDetectorRef),
-     * );
-     * ```
-     */
-    private readonly repaint?: ChangeDetectorRef,
   ) {
     super();
   }
@@ -206,10 +190,7 @@ export class LiveWindowDataSource<Row extends LiveRow> extends DataSource<Row | 
     // asking any more, and the snapshot lands a moment later. Emptying it
     // without saying so leaves the previous answer on display in between.
     //
-    // `markForCheck` and not `touched`: a screen calls this from an `effect`,
-    // and Angular 18 - which this package still supports - refuses a signal
-    // write from inside one.
-    this.repaint?.markForCheck();
+    this.repaint.markForCheck();
     this.follow();
   }
 
@@ -330,7 +311,7 @@ export class LiveWindowDataSource<Row extends LiveRow> extends DataSource<Row | 
       for (const id of ids) {
         this.recent.delete(id);
       }
-      this.touched();
+      this.repaint.markForCheck();
     }, FRESH_MS);
   }
 
@@ -347,18 +328,6 @@ export class LiveWindowDataSource<Row extends LiveRow> extends DataSource<Row | 
       rows[this.offset + index] = held[index];
     }
     this.published.next(rows);
-    this.touched();
-  }
-
-  /**
-   * Says that the screen has something new to show.
-   *
-   * Both ways at once, and they do not overlap: the signal serves a template
-   * that reads `revision()`, and `markForCheck()` serves one that does not.
-   * Whichever the screen uses, the other costs a counter.
-   */
-  private touched(): void {
-    this.stamp.update((count) => count + 1);
-    this.repaint?.markForCheck();
+    this.repaint.markForCheck();
   }
 }

@@ -2,15 +2,23 @@
 
 ## NEXT RELEASE
 
+### Breaking
+
+- **`LiveWindowDataSource` injects the view it repaints, and `revision()` is gone.** Build it in a component field — where you were building it anyway — and it takes that view's `ChangeDetectorRef` and calls `markForCheck()` on every publication: the view is marked dirty *and* the zoneless scheduler is notified, which is the whole of what a screen used to have to arrange for itself. Built outside an injection context it now throws, which is the intended answer: a data source with no view to repaint has nobody to answer.
+
+  Migrating: drop `source.revision()` from your templates — `[class.fresh]="source.fresh(row?.id)"` is the whole binding now — and make sure the source is built in the component that shows the list.
+
+  Two ways of saying "something arrived" was one too many. The screens that picked the wrong one looked right in development and held stale rows in production.
+
 ---
 
 ## 0.1.1
 
 ### Features
 
-- **`LiveWindowDataSource` can repaint a zoneless screen on its own.** Hand it a `ChangeDetectorRef` and it calls `markForCheck()` whenever it publishes — which marks the view dirty *and* notifies the zoneless scheduler — so the template no longer has to read `revision()` for the screen to move. `revision()` stays, for a source built outside an injection context. It asks for a pass only when something changed: not on a frame it had to reject, and not when the window moves — only when its answer lands.
-- **An agent brief at the root**, [`llm-instructions.md`](./llm-instructions.md): the model, a recipe per backend and per screen, the rules that must not be broken with the failure each one prevents, a checklist, and a symptom → cause → fix table.
+- The data source asks for a pass only when there is something to show: not on a frame it had to reject, not when the window moves, once when its answer lands, and once more when the fresh marks come off. The tests count those calls.
 - The documented screen follows its viewport through an **`effect`** rather than `ngAfterViewInit`. The query is a signal, so a viewport that appears later — a tab, a panel, anything behind an `@if` — is picked up when it appears rather than never.
+- **An agent brief at the root**, [`llm-instructions.md`](./llm-instructions.md): the model, a recipe per backend and per screen, the rules that must not be broken with the failure each one prevents, a checklist, and a symptom → cause → fix table.
 - The documentation carries the frameworks' own marks rather than emoji.
 
 ---

@@ -1,3 +1,4 @@
+import { ChangeDetectorRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MockServer } from '@softwarity/livewire-mock';
 import { LiveList } from '../src/lib/live-list';
@@ -22,7 +23,12 @@ describe('the client, end to end', () => {
   function clientOf(): LivewireClient {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [provideLivewire({ path: '', connect: () => server.connect() })],
+      providers: [
+        provideLivewire({ path: '', connect: () => server.connect() }),
+        // The data source repaints a view; here there is none, so the ref is a
+        // stub. `repaint.spec.ts` is where the repainting itself is checked.
+        { provide: ChangeDetectorRef, useValue: { markForCheck: () => undefined } },
+      ],
     });
     return TestBed.inject(LivewireClient);
   }
@@ -128,7 +134,9 @@ describe('the client, end to end', () => {
   it('feeds a virtual-scroll source from end to end', async () => {
     const client = clientOf();
     const topic = new LiveTopic<LiveRow>(client, 'rows');
-    const source = new LiveWindowDataSource<LiveRow>();
+    // Built in an injection context, as it is in a component field: the data
+    // source takes the view it repaints from there.
+    const source = TestBed.runInInjectionContext(() => new LiveWindowDataSource<LiveRow>());
     source.reset((offset, limit) => topic.window({}, offset, limit));
     await settle();
 

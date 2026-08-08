@@ -231,8 +231,7 @@ providers: [provideLivewire({ path: '/my-service/ws' })]`;
 }`;
 
   protected readonly markup = `<cdk-virtual-scroll-viewport itemSize="48">
-  <!-- revision() is read so a zoneless app repaints when a frame lands -->
-  <div *cdkVirtualFor="let row of source" [class.fresh]="source.revision() && source.fresh(row?.id)">
+  <div *cdkVirtualFor="let row of source" [class.fresh]="source.fresh(row?.id)">
     ...
   </div>
 </cdk-virtual-scroll-viewport>`;

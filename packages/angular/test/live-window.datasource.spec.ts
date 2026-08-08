@@ -1,7 +1,24 @@
+import { ChangeDetectorRef } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
 import { Subject } from 'rxjs';
 import { LiveWindowDataSource } from '../src/lib/live-window.datasource';
 import type { CollectionViewer } from '@angular/cdk/collections';
 import type { LiveRow, UpdateFrame } from '@softwarity/livewire-protocol';
+
+/**
+ * The data source injects the view it repaints, so it is built in an injection
+ * context here as it is in a component field. Nothing in this file is about
+ * repainting - `repaint.spec.ts` covers that - so the ref is a stub.
+ */
+function build<Row extends LiveRow>(...args: ConstructorParameters<typeof LiveWindowDataSource>): LiveWindowDataSource<Row> {
+  return TestBed.runInInjectionContext(() => new LiveWindowDataSource<Row>(...args));
+}
+
+beforeEach(() =>
+  TestBed.configureTestingModule({
+    providers: [{ provide: ChangeDetectorRef, useValue: { markForCheck: () => undefined } }],
+  }),
+);
 
 function rows(from: number, count: number): LiveRow[] {
   return Array.from({ length: count }, (_, index) => ({ id: `r${from + index}`, updatedAt: 'v1' }));
@@ -16,11 +33,7 @@ describe('LiveWindowDataSource', () => {
   function sourceOf(window?: number): void {
     opened = [];
     feed = new Subject<UpdateFrame<LiveRow>>();
-    source = new LiveWindowDataSource<LiveRow>(
-      () => undefined,
-      () => undefined,
-      window,
-    );
+    source = build<LiveRow>(() => undefined, () => undefined, window);
     viewChange = new Subject<{ start: number; end: number }>();
     source.connect({ viewChange } as unknown as CollectionViewer);
     source.reset((offset, limit) => {
@@ -120,7 +133,7 @@ describe('LiveWindowDataSource', () => {
     let drifted = 0;
     opened = [];
     feed = new Subject<UpdateFrame<LiveRow>>();
-    source = new LiveWindowDataSource<LiveRow>(
+    source = build<LiveRow>(
       () => undefined,
       () => (drifted += 1),
     );
