@@ -2,6 +2,10 @@
 
 ## NEXT RELEASE
 
+---
+
+## 0.4.0
+
 ### Features
 
 - **Level 2: commands and notifications** — implemented in all three servers and in the Angular client, and specified in `SPEC.md` §6 before any of them was written.
