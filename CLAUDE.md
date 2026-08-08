@@ -6,7 +6,8 @@ le contrat normatif est dans [packages/protocol/SPEC.md](./packages/protocol/SPE
 Ici : l'état, les conventions, et les pièges.
 
 État au **8 août 2026**. Dépôt `git@github.com:softwarity/livewire.git`, branche
-`main`, 7 commits poussés, **rien de publié** (ni npm, ni tag).
+`main`. **0.1.0 est publiée** : quatre paquets sur npm, `go/v0.1.0` sur le proxy
+Go, et une Release GitHub dont le corps vient de `RELEASE_NOTES.md`.
 
 ---
 
@@ -34,10 +35,10 @@ Les 12 scénarios passent contre **trois** serveurs : en mémoire, NestJS (socke
 
 CI : `unit-tests.yml` (job TypeScript + job Go), `release.yml` (bump commun,
 pose `vX.Y.Z` **et** `go/vX.Y.Z`, pousse avec `PAT_TOKEN`), `tag.yml` (publie sur
-npm dans l'ordre protocol → mock → nestjs → angular), `deploy-doc.yml`.
+npm dans l'ordre protocol → mock → nestjs → angular, après le build), `deploy-doc.yml`.
 
-**Il reste** : publier (voir TODO §4), puis le niveau 2 (commandes et
-notifications, TODO §5). Rien d'autre n'est en cours.
+**Il reste** : le niveau 2 (commandes et notifications, TODO §5). Rien d'autre
+n'est en cours.
 
 ## 3. Carte du dépôt
 
@@ -150,9 +151,24 @@ minutes. La suite se saute d'elle-même là où Go est absent.
 
 ## 7. Ce qui reste
 
-1. **Publier.** Numéro `0.1.0`, `release.yml` en `workflow_dispatch`. Vérifier
-   `NPM_TOKEN` et `PAT_TOKEN`, et activer GitHub Pages (source : GitHub Actions).
-2. **Niveau 2** : `command(name, payload)` avec accusé et `notify(topic, payload)`.
-   Détail et justification dans TODO §5. Après la première version publiée.
+**Niveau 2** : `command(name, payload)` avec accusé et `notify(topic, payload)`.
+Détail et justification dans TODO §5.
 
-Tout le reste — README, doc, CI, conformité — est fait.
+Tout le reste — README, doc, CI, conformité, publication — est fait.
+
+### Releaser
+
+Onglet Actions → *Create Tag/Release* → `patch` / `minor` / `major`. Le reste
+est automatique : les quatre paquets et les deux lockfiles passent au numéro,
+`softwarity/release-flow` referme `## NEXT RELEASE` sur la version et publie la
+Release, `v X.Y.Z` déclenche npm et `go/vX.Y.Z` publie le module Go.
+
+Trois pièges déjà payés, tous dans les workflows :
+
+- `version-all.mjs` doit toucher les **devDependencies** — le mock en est une
+  pour les deux serveurs, et une version laissée derrière envoie npm chercher au
+  registre ce qui est dans le workspace : tous les `npm ci` du dépôt tombent.
+- Le bump passe **avant** le build : le site de doc verrouille la version écrite
+  dans la sortie de build des paquets.
+- Publier, c'est `npm ci` → **`npm run build`** → `npm test`. Un paquet nomme son
+  voisin par son nom npm, qui résout vers un `dist/` que le build seul produit.

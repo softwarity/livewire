@@ -43,7 +43,7 @@ réaliste (trois jours). Élargir se paie sur ces trois lignes à la fois.
 | ✅ | suite de conformité — 12 scénarios × 3 serveurs | |
 | ✅ | doc GitHub Pages, avec démo pilotée par le serveur en mémoire | |
 | ✅ | CI : `unit-tests`, `release` (deux tags), `tag`, `deploy-doc` | |
-| ⬜ | **publication** — rien n'est encore sur npm, aucun tag posé | |
+| ✅ | **publication** — 0.1.0 sur npm, `go/v0.1.0`, Release GitHub | |
 | ⬜ | niveau 2 : commandes et notifications | |
 
 Les douze scénarios passent sur les trois serveurs. Ce qui reste avant une
@@ -170,10 +170,11 @@ un avertissement de *bailout* au bundler (contourné par
 `allowedCommonJsDependencies`). Les passer en ESM — ou en double format — est une
 amélioration de packaging à faire un jour, pas une urgence.
 
-**Ce qui reste avant de publier** : décider du numéro (`0.1.0`), lancer
-`release.yml` (il pose `v0.1.0` **et** `go/v0.1.0`), vérifier que `NPM_TOKEN` et
-`PAT_TOKEN` sont en place, et activer GitHub Pages sur le dépôt (source :
-GitHub Actions).
+**Fait le 8 août 2026** : `0.1.0` publiée. `release.yml` s'appuie sur
+`softwarity/release-flow@v1` — le bump, les notes et la Release GitHub sont à
+lui ; ce dépôt ajoute autour la version commune aux quatre paquets et le tag
+`go/vX.Y.Z`. Voir la section « Releaser » de `CLAUDE.md` pour les trois pièges
+qui ont coûté deux tentatives.
 
 ## 5. Niveau 2 — commandes et notifications
 
