@@ -1,7 +1,8 @@
 import { DataSource } from '@angular/cdk/collections';
-import { ChangeDetectorRef, inject } from '@angular/core';
+import { ChangeDetectorRef, inject, signal } from '@angular/core';
 import { BehaviorSubject, Observable, Subscription } from 'rxjs';
 import { LiveList } from './live-list';
+import type { Signal } from '@angular/core';
 import type { CollectionViewer, ListRange } from '@angular/cdk/collections';
 import type { LiveRow, UpdateFrame } from '@softwarity/livewire-protocol';
 
@@ -83,6 +84,29 @@ export class LiveWindowDataSource<Row extends LiveRow> extends DataSource<Row | 
    */
   private readonly repaint = inject(ChangeDetectorRef);
 
+  private readonly held = signal(0);
+  private readonly marked = signal<number | null>(null);
+
+  /**
+   * How long the list is, as the server last reported it.
+   *
+   * A signal and not a getter, and that is not a style choice: a `computed`
+   * reading a getter never re-runs, because nothing tells it the value moved.
+   * The screens that derive from these - a counter, a divider drawn at `pivot` -
+   * had to watch `changes` and read the getter inside, which is this signal
+   * written by hand and easy to forget.
+   */
+  readonly length: Signal<number> = this.held.asReadonly();
+
+  /**
+   * The index the server pointed at, in the whole list rather than in the page.
+   *
+   * Whatever it means is the screen's business. It survives the window moving,
+   * which is the point: a boundary the reader has scrolled away from is still
+   * where it was.
+   */
+  readonly pivot: Signal<number | null> = this.marked.asReadonly();
+
   private list = new LiveList<Row>();
   private watching: Subscription | null = null;
 
@@ -96,7 +120,6 @@ export class LiveWindowDataSource<Row extends LiveRow> extends DataSource<Row | 
   private range = { start: 0, end: 0 };
 
   constructor(
-    private readonly onTotal: (total: number) => void = () => undefined,
     /** Told when a patch cannot be applied, so the caller can ask again. */
     private readonly onDrift: () => void = () => undefined,
     /** Rows per window - see `DEFAULT_WINDOW` for how to choose one. */
@@ -129,22 +152,6 @@ export class LiveWindowDataSource<Row extends LiveRow> extends DataSource<Row | 
   disconnect(): void {
     this.viewing.unsubscribe();
     this.watching?.unsubscribe();
-  }
-
-  /** How long the list is, as the server last reported it. */
-  get length(): number {
-    return this.list.total();
-  }
-
-  /**
-   * The index the server pointed at, in the whole list rather than in the page.
-   *
-   * Whatever it means is the screen's business. It survives the window moving,
-   * which is the point: a boundary the reader has scrolled away from is still
-   * where it was.
-   */
-  get pivot(): number | null {
-    return this.list.pivot();
   }
 
   /** Every republication, for a caller waiting on one row rather than on the viewport. */
@@ -289,7 +296,6 @@ export class LiveWindowDataSource<Row extends LiveRow> extends DataSource<Row | 
         if (update.type === 'patch') {
           this.mark(update.upserted.map((row) => row.id));
         }
-        this.onTotal(this.list.total());
         this.publish();
       },
       error: (error: unknown) => console.error('[livewire] window failed', error),
@@ -328,6 +334,11 @@ export class LiveWindowDataSource<Row extends LiveRow> extends DataSource<Row | 
       rows[this.offset + index] = held[index];
     }
     this.published.next(rows);
+    // Written here and nowhere else: a frame arriving is the only thing that
+    // moves them, and `reset` deliberately leaves them alone - a screen calls
+    // that from an `effect`, and the snapshot that follows sets them anyway.
+    this.held.set(this.list.total());
+    this.marked.set(this.list.pivot());
     this.repaint.markForCheck();
   }
 }

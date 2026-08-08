@@ -220,7 +220,7 @@ interface Traffic {
         <div class="bar">
           <lw-live-indicator />
           <span class="title">board</span>
-          <span>{{ total() }} rows</span>
+          <span>{{ source.length() }} rows</span>
           <span class="spacer"></span>
           <span>window [{{ window().offset }}, {{ window().offset + window().limit }})</span>
         </div>
@@ -372,18 +372,13 @@ server.touched('board');`;
   private readonly topic = new LiveTopic<BoardRow>(inject(LivewireClient), 'board');
   private readonly viewport = viewChild.required(CdkVirtualScrollViewport);
 
-  protected readonly total = signal(0);
   protected readonly window = signal({ offset: 0, limit: WINDOW });
   protected readonly traffic = signal<Traffic[]>([]);
   protected readonly frames = signal(0);
   protected readonly bytes = signal(0);
   protected readonly running = signal(feed.running);
 
-  protected readonly source = new LiveWindowDataSource<BoardRow>(
-    (total) => this.total.set(total),
-    () => this.topic.resync(),
-    WINDOW,
-  );
+  protected readonly source = new LiveWindowDataSource<BoardRow>(() => this.topic.resync(), WINDOW);
 
   private counted = 0;
 

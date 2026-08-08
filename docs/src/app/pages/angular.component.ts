@@ -11,7 +11,7 @@ import { CodeComponent } from '../code/code.component';
     <app-code lang="bash" [code]="install" />
 
     <p>
-      Zoneless, signal-based, and built on one plain <code>WebSocket</code>. Angular 18 and up; the CDK
+      Zoneless, signal-based, and built on one plain <code>WebSocket</code>. Angular 19 and up; the CDK
       is a peer dependency because the virtual-scroll data source is the part most screens want.
     </p>
 
@@ -109,7 +109,7 @@ import { CodeComponent } from '../code/code.component';
         <tr><td><code>LivewireClient</code></td><td><code>watch</code>, <code>resync</code>, <code>retry</code>, and a <code>live</code> signal.</td></tr>
         <tr><td><code>LiveTopic</code></td><td>One screen's window on one topic: unique ids, and a resync that names the right one.</td></tr>
         <tr><td><code>LiveList</code></td><td>Snapshot then patches, applied. Answers <code>false</code> when the two sides have drifted.</td></tr>
-        <tr><td><code>LiveWindowDataSource</code></td><td>The CDK data source above.</td></tr>
+        <tr><td><code>LiveWindowDataSource</code></td><td>The CDK data source above. <code>length()</code> and <code>pivot()</code> are signals: read them in a template, derive from them in a <code>computed</code>.</td></tr>
         <tr><td><code>liveLabels</code></td><td>A short list of <code>&#123; id, label &#125;</code>, kept in step.</td></tr>
         <tr><td><code>LiveIndicatorComponent</code></td><td>The dot.</td></tr>
       </tbody>
@@ -137,12 +137,13 @@ provideLivewire({ path: '', connect: () => server.connect() })`;
   // there on the first pass, and the effect below simply runs again when it is.
   private readonly viewport = viewChild(CdkVirtualScrollViewport);
 
-  readonly total = signal(0);
   readonly source = new LiveWindowDataSource<MessageRow>(
-    (total) => this.total.set(total),  // the list length the server reports
-    () => this.topic.resync(),         // a gap in the sequence: ask again
-    100,                               // rows per window - a transport budget
+    () => this.topic.resync(),  // a gap in the sequence: ask again
+    100,                        // rows per window - a transport budget
   );
+
+  // Signals, so a template reads them and a computed follows them.
+  readonly total = this.source.length;
 
   constructor() {
     // A new question: a new subscription, and a snapshot to start from.

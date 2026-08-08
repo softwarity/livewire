@@ -1,4 +1,4 @@
-import { ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectorRef, computed } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Subject } from 'rxjs';
 import { LiveWindowDataSource } from '../src/lib/live-window.datasource';
@@ -33,7 +33,7 @@ describe('LiveWindowDataSource', () => {
   function sourceOf(window?: number): void {
     opened = [];
     feed = new Subject<UpdateFrame<LiveRow>>();
-    source = build<LiveRow>(() => undefined, () => undefined, window);
+    source = build<LiveRow>(() => undefined, window);
     viewChange = new Subject<{ start: number; end: number }>();
     source.connect({ viewChange } as unknown as CollectionViewer);
     source.reset((offset, limit) => {
@@ -118,7 +118,7 @@ describe('LiveWindowDataSource', () => {
     const moved = opened.at(-1)?.offset ?? 0;
     answer(moved, 13_000);
 
-    expect(source.length).toBe(13_000);
+    expect(source.length()).toBe(13_000);
     expect(source.at(moved)).toEqual({ id: `r${moved}`, updatedAt: 'v1' });
     expect(source.at(0)).toBeUndefined();
   });
@@ -126,17 +126,43 @@ describe('LiveWindowDataSource', () => {
   it('carries the pivot through, whatever it means', () => {
     feed.next({ id: 'w', type: 'snapshot', rows: rows(0, 10), total: 500, pivot: 42, sequence: 1 });
 
-    expect(source.pivot).toBe(42);
+    expect(source.pivot()).toBe(42);
+  });
+
+  /**
+   * Why these are signals and not getters.
+   *
+   * A screen draws a divider at the pivot and counts what is behind it, both
+   * derived. Reading a getter inside a `computed` reads it once and never
+   * again: nothing tells the computed the value moved, so the divider stayed
+   * where the first answer put it. The screens that got this right watched
+   * `changes` and read the getter inside - which is this, written by hand.
+   */
+  it('moves what derives from it', () => {
+    const at = computed(() => source.pivot());
+    const behind = computed(() => `${at() ?? 0} of ${source.length()}`);
+
+    feed.next({ id: 'w', type: 'snapshot', rows: rows(0, 10), total: 500, pivot: 42, sequence: 1 });
+    expect(behind()).toBe('42 of 500');
+
+    feed.next({
+      id: 'w',
+      type: 'patch',
+      upserted: [],
+      removed: [],
+      order: rows(0, 10).map((row) => row.id),
+      total: 501,
+      pivot: 43,
+      sequence: 2,
+    });
+    expect(behind()).toBe('43 of 501');
   });
 
   it('resyncs rather than applying a frame it cannot place', () => {
     let drifted = 0;
     opened = [];
     feed = new Subject<UpdateFrame<LiveRow>>();
-    source = build<LiveRow>(
-      () => undefined,
-      () => (drifted += 1),
-    );
+    source = build<LiveRow>(() => (drifted += 1));
     source.reset(() => feed);
 
     feed.next({ id: 'w', type: 'snapshot', rows: rows(0, 3), total: 3, sequence: 1 });

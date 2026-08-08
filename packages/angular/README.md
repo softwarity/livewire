@@ -20,10 +20,12 @@ export class MessagesService {
 
 ```ts
 readonly source = new LiveWindowDataSource<MessageRow>(
-  (total) => this.total.set(total),
-  () => this.messages.resync(),
-  100,
+  () => this.messages.resync(),   // a gap in the sequence: ask again
+  100,                            // rows per window - a transport budget
 );
+
+// What the list holds, as signals: read them in a template, derive from them
+// in a `computed`. `source.length()` is what the server says the list is.
 
 constructor() {
   effect(() => {

@@ -2,6 +2,14 @@
 
 ## NEXT RELEASE
 
+### Breaking
+
+- **`length` and `pivot` are signals, and `onTotal` is gone.** They were getters, which a `computed` cannot follow: it reads the value once and never re-runs, because nothing tells it the value moved. A screen deriving from them — a counter, a divider drawn at `pivot` — had to watch `changes` and read the getter inside, which is exactly this signal written by hand and easy to forget. With `length()` a signal, the `onTotal` callback the constructor took is redundant, so it is removed.
+
+  Migrating: `source.length` becomes `source.length()`, `source.pivot` becomes `source.pivot()`, and the constructor loses its first argument — `new LiveWindowDataSource(onDrift, window)`. Whatever `onTotal` was writing into, read `source.length` instead.
+
+- **Angular 19 is the floor**, up from 18. The data source now writes signals when a frame lands, and a frame can land inside the `effect` that called `reset` — a synchronous server does exactly that — which Angular 18 refuses. 19 allows it.
+
 ---
 
 ## 0.2.4

@@ -22,7 +22,7 @@
     "directory": "packages/angular"
   },
   "license": "Apache-2.0",
-  "author": "François ACHACHE <francois.achache@gmail.com>",
+  "author": "Fran\u00e7ois ACHACHE <francois.achache@gmail.com>",
   "publishConfig": {
     "access": "public"
   },
@@ -32,9 +32,9 @@
     "test": "jest"
   },
   "peerDependencies": {
-    "@angular/cdk": ">=18.0.0",
-    "@angular/common": ">=18.0.0",
-    "@angular/core": ">=18.0.0",
+    "@angular/cdk": ">=19.0.0",
+    "@angular/common": ">=19.0.0",
+    "@angular/core": ">=19.0.0",
     "rxjs": "^7.5.0"
   },
   "dependencies": {

@@ -141,7 +141,7 @@ describe('the client, end to end', () => {
     source.reset((offset, limit) => topic.window({}, offset, limit));
     await settle();
 
-    expect(source.length).toBe(2);
+    expect(source.length()).toBe(2);
     expect(source.at(0)).toEqual({ id: 'a', updatedAt: 'v1' });
 
     rows = [{ id: 'c', updatedAt: 'v1' }, ...rows];

@@ -87,6 +87,11 @@ Chacune a coûté une session de débogage ou une discussion déjà eue.
 - `WebSocket` natif, **jamais** `rxjs/webSocket` : celui-ci lie la connexion au
   nombre d'abonnés (neuf sockets pour une liste).
 - Un id d'abonnement **unique par fenêtre**, jamais réutilisé.
+- **`length()` et `pivot()` sont des signaux**, pas des accesseurs : un
+  `computed` qui lit un accesseur ne se réévalue jamais, et les écrans qui en
+  dérivaient devaient regarder `changes` et relire l'accesseur dedans. Le rappel
+  `onTotal` du constructeur a disparu avec eux. Écrits uniquement à la
+  publication — `reset()` n'y touche pas, un écran l'appelle depuis un `effect`.
 - **Le `LiveWindowDataSource` s'injecte le `ChangeDetectorRef` de la vue** et
   appelle `markForCheck()` à chaque publication : en zoneless, rien d'autre ne
   reprogramme un cycle depuis un callback socket (`markViewDirty` appelle

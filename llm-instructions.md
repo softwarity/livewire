@@ -233,7 +233,7 @@ server serves is worth reading anyway.
 
 ## 4. Client — Angular
 
-Zoneless, signal-based, Angular 18+. The CDK is a peer dependency.
+Zoneless, signal-based, Angular 19+. The CDK is a peer dependency. (19 and not 18: the data source writes signals when a frame lands, and 18 refuses a signal write from inside an `effect` — which is where a screen calls `reset` from.)
 
 ### 4.1 Provide the socket, once
 
@@ -260,12 +260,15 @@ export class MessagesComponent implements OnDestroy {
   // there on the first pass, and the effect below simply runs again when it is.
   private readonly viewport = viewChild(CdkVirtualScrollViewport);
 
-  readonly total = signal(0);
   readonly source = new LiveWindowDataSource<MessageRow>(
-    (total) => this.total.set(total),  // the list length the server reports
-    () => this.topic.resync(),         // a gap in the sequence: ask again
-    100,                               // rows per window - see 4.4
+    () => this.topic.resync(),  // a gap in the sequence: ask again
+    100,                        // rows per window - see 4.4
   );
+
+  // What the list holds, as signals. `length()` is what the server says the
+  // whole list is - not what the window holds - and `pivot()` is the index it
+  // pointed at, if it pointed at one.
+  readonly total = this.source.length;
 
   constructor() {
     // A new question: a new subscription, and a snapshot to start from.
@@ -506,7 +509,7 @@ sequence restarts — it reads as a gap, resyncs, and nothing publishes meanwhil
 | `provideLivewire({ path, reconnectMs?, connect? })` | The one socket |
 | `LivewireClient` | `live` signal, `watch(id, topic, query)`, `resync(id)`, `retry()` |
 | `LiveTopic<Row>(client, topic)` | `window(query, offset, limit)`, `open(query)`, `resync()` |
-| `LiveWindowDataSource<Row>(onTotal?, onDrift?, window?)` | `track`, `reset`, `ensure`, `at`, `length`, `pivot`, `fresh`, `changes`, `disconnect`. Built in an injection context. |
+| `LiveWindowDataSource<Row>(onDrift?, window?)` | `length()` and `pivot()` are **signals**; `track`, `reset`, `ensure`, `at`, `fresh`, `changes`, `disconnect`. Built in an injection context. |
 | `LiveList<Row>` | `apply(frame)` → false on drift; `rows`, `total`, `pivot` signals |
 | `liveLabels(client, topic, query?)` | `Observable<{ id, label }[]>` |
 | `LiveIndicatorComponent` | `<lw-live-indicator>`, `--lw-live` / `--lw-down` |

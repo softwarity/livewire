@@ -219,11 +219,10 @@ providers: [provideLivewire({ path: '/my-service/ws' })]`;
   protected readonly screen = `export class MessagesComponent {
   private readonly topic = new LiveTopic<MessageRow>(inject(LivewireClient), 'messages');
 
-  readonly total = signal(0);
-  readonly source = new LiveWindowDataSource<MessageRow>(
-    (total) => this.total.set(total),
-    () => this.topic.resync(),
-  );
+  readonly source = new LiveWindowDataSource<MessageRow>(() => this.topic.resync());
+
+  // What the server says the whole list is, as a signal.
+  readonly total = this.source.length;
 
   search(filters: MessageFilters): void {
     this.source.reset((offset, limit) => this.topic.window(filters, offset, limit));
