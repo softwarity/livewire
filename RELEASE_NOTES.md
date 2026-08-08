@@ -8,6 +8,10 @@
 
 ### Fixes
 
+- **A subscription opened before the socket finished connecting died there.** A `WebSocket` still in `CONNECTING` *throws* on `send` rather than ignoring it, and that exception came straight back out of `watch`'s subscribe function — tearing down the very subscription being opened. On a page refresh that is every list a screen asks for before the handshake completes, and none of them came back: the client's `onopen` re-sent them, but nobody was listening any more. Frames now wait for the handshake, which was always the intent. The in-memory server could not show this on its own — its socket accepts frames at any time — so the test drives one that refuses like a real one.
+
+### Fixes
+
 - **`<lw-live-indicator>` is a lit dot now, and it sits where it belongs.** A disc with a soft halo of its own colour, and a flare that leaves it and fades — the state stays steady and what says "live" happens around it, instead of the dot jumping every second. The host also centres itself, so a row aligning its children to the top no longer strands it above the text beside it.
 - **The component's styles were half-dropped by the browser.** They carried `//` comments, which are SCSS: in the plain CSS of an inline `styles` block that is an invalid selector, and it swallowed the rule after it — the dot had no size and no colour at all. Only visible on a real page, which is where it was found.
 

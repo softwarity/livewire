@@ -208,8 +208,20 @@ export class LivewireClient {
   }
 
   private send(event: string, data: unknown): void {
-    // Anything sent before the socket is up is not queued here: `onopen` sends
-    // every open subscription, which is the same set and a shorter path.
+    // Nothing is sent before the socket is up, and this is not an optimisation.
+    // A `WebSocket` still connecting *throws* on `send` rather than ignoring
+    // it, and that exception comes straight back out of `watch`'s subscribe
+    // function - killing the very subscription being opened. On a cold load
+    // that is every list a screen asks for before the handshake completes, and
+    // they never come back, because the error tears the observable down.
+    //
+    // Nothing is lost by waiting: `onopen` sends every open subscription, which
+    // is the same set and a shorter path. An `unsubscribe` that does not go out
+    // is not lost either - the id is already gone from `open`, so it is not
+    // among what gets re-sent.
+    if (!this.live()) {
+      return;
+    }
     this.socket?.send(JSON.stringify({ event, data }));
   }
 }

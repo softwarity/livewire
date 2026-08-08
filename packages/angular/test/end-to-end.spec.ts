@@ -5,6 +5,7 @@ import { LiveList } from '../src/lib/live-list';
 import { LiveTopic, liveLabels } from '../src/lib/live-topic';
 import { LiveWindowDataSource } from '../src/lib/live-window.datasource';
 import { LivewireClient } from '../src/lib/livewire.client';
+import type { LivewireSocket } from '../src/lib/livewire.client';
 import { provideLivewire } from '../src/lib/provide-livewire';
 import type { LiveRow, LiveWindow } from '@softwarity/livewire-protocol';
 
@@ -170,5 +171,73 @@ describe('the client, end to end', () => {
 
     // A resubscribe answers with a snapshot, whatever the window holds.
     expect(seen).toEqual(['snapshot', 'snapshot']);
+  });
+});
+
+/**
+ * What a cold load does to the first subscriptions.
+ *
+ * A `WebSocket` that is still connecting throws on `send` rather than ignoring
+ * it. A screen subscribing before the handshake completes - which on a page
+ * refresh is every list it asks for - would take that exception straight out of
+ * `watch`, and the subscription would die there and never come back.
+ *
+ * The in-memory server cannot show this on its own: its socket accepts frames
+ * at any time. So the socket here behaves like the real one.
+ */
+describe('subscribing before the socket is open', () => {
+  it('waits for the handshake instead of dying on it', async () => {
+    const rows: LiveRow[] = [{ id: 'a', updatedAt: 'v1' }];
+    const server = new MockServer();
+    server.register('labels', { windowFor: () => ({ rows, total: rows.length }) });
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideLivewire({
+          path: '',
+          connect: () => {
+            const socket = server.connect();
+            let open = false;
+            const onopen = () => {
+              open = true;
+            };
+            return {
+              // A real socket refuses to send until it is open.
+              send: (frame: string) => {
+                if (!open) {
+                  throw new Error('InvalidStateError: still CONNECTING');
+                }
+                socket.send(frame);
+              },
+              close: () => socket.close(),
+              set onopen(listener: (() => void) | null) {
+                socket.onopen = () => {
+                  onopen();
+                  listener?.();
+                };
+              },
+              set onmessage(listener: ((frame: string) => void) | null) {
+                socket.onmessage = (frame) => listener?.(frame);
+              },
+              set onclose(listener: ((code: number, reason: string) => void) | null) {
+                socket.onclose = (code, reason) => listener?.(code, reason);
+              },
+            } as LivewireSocket;
+          },
+        }),
+      ],
+    });
+
+    const seen: string[] = [];
+    const failed: unknown[] = [];
+    liveLabels(TestBed.inject(LivewireClient), 'labels').subscribe({
+      next: (labels) => seen.push(...labels.map((label) => label.id)),
+      error: (error: unknown) => failed.push(error),
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(failed).toEqual([]);
+    expect(seen).toEqual(['a']);
   });
 });
