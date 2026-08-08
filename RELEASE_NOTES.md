@@ -2,6 +2,10 @@
 
 ## NEXT RELEASE
 
+---
+
+## 0.1.1
+
 ### Features
 
 - **`LiveWindowDataSource` can repaint a zoneless screen on its own.** Hand it a `ChangeDetectorRef` and it calls `markForCheck()` whenever it publishes — which marks the view dirty *and* notifies the zoneless scheduler — so the template no longer has to read `revision()` for the screen to move. `revision()` stays, for a source built outside an injection context. It asks for a pass only when something changed: not on a frame it had to reject, and not when the window moves — only when its answer lands.
