@@ -8,7 +8,8 @@
 
 ### Fixes
 
-- **`<lw-live-indicator>` sits where it belongs and breathes instead of pulsing.** The host now centres itself, so a row that aligns its children to the top no longer leaves the dot stranded above the text beside it. And the animation is a slow fade rather than a jump every second: the dot says the socket is up, which is the quiet state of a working screen — something that flashes reads as a warning and pulls the eye off the list.
+- **`<lw-live-indicator>` is a lit dot now, and it sits where it belongs.** A disc with a soft halo of its own colour, and a flare that leaves it and fades — the state stays steady and what says "live" happens around it, instead of the dot jumping every second. The host also centres itself, so a row aligning its children to the top no longer strands it above the text beside it.
+- **The component's styles were half-dropped by the browser.** They carried `//` comments, which are SCSS: in the plain CSS of an inline `styles` block that is an invalid selector, and it swallowed the rule after it — the dot had no size and no colour at all. Only visible on a real page, which is where it was found.
 
 ---
 

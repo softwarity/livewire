@@ -37,9 +37,9 @@ const ACKNOWLEDGE_MS = 700;
     `
       :host {
         display: inline-flex;
-        // Centred on its own line and beside whatever it sits next to. A dot is
-        // small enough that a row aligning its children to the top leaves it
-        // stranded above the text it belongs to.
+        /* Centred on its own line and beside whatever it sits next to. A dot is
+           small enough that a row aligning its children to the top leaves it
+           stranded above the text it belongs to. */
         align-items: center;
         align-self: center;
         vertical-align: middle;
@@ -61,41 +61,57 @@ const ACKNOWLEDGE_MS = 700;
         outline-offset: 2px;
         border-radius: 50%;
       }
+      /* A lit dot, not a printed one: the disc, and a soft halo of the same
+         colour behind it. The halo is what makes it read as a state rather
+         than as punctuation. */
       .lw-dot {
+        position: relative;
         display: block;
-        width: 0.6rem;
-        height: 0.6rem;
+        width: 0.55rem;
+        height: 0.55rem;
         border-radius: 50%;
         background: currentColor;
+        box-shadow: 0 0 0 0.18rem color-mix(in srgb, currentColor 20%, transparent);
       }
-      .lw-dot.lw-beat {
-        animation: lw-beat 2.4s ease-in-out infinite;
+      /* The flare. A ring that leaves the dot and fades, rather than the dot
+         itself moving: the state is steady, and what says "live" is around it. */
+      .lw-dot::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: currentColor;
+        opacity: 0;
+      }
+      .lw-dot.lw-beat::after {
+        animation: lw-flare 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
       }
       .lw-dot.lw-turn {
         animation: lw-turn 0.5s ease-out;
       }
-      // A breath, not a pulse. The dot says the socket is up, which is the
-      // quiet state of a working screen: something that jumps every second
-      // reads as a warning and pulls the eye away from the list.
-      @keyframes lw-beat {
-        0%,
-        100% {
-          opacity: 1;
+      @keyframes lw-flare {
+        0% {
+          opacity: 0.5;
           transform: scale(1);
         }
-        50% {
-          opacity: 0.45;
-          transform: scale(0.88);
+        70%,
+        100% {
+          opacity: 0;
+          transform: scale(2.8);
         }
       }
+      /* One turn on click, so the gesture is acknowledged: a resync on a list
+         that has not moved changes no pixel otherwise. */
       @keyframes lw-turn {
         from {
-          transform: scale(1.6);
+          transform: scale(1.7);
           opacity: 0.4;
         }
       }
       @media (prefers-reduced-motion: reduce) {
-        .lw-dot.lw-beat,
+        /* The halo stays - it is not motion, and it is what makes the state
+           legible at a glance. */
+        .lw-dot.lw-beat::after,
         .lw-dot.lw-turn {
           animation: none;
         }
