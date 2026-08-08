@@ -1,0 +1,28 @@
+{
+  "name": "@softwarity/livewire-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Live query synchronisation over one WebSocket - workspace root",
+  "license": "MIT",
+  "author": "François ACHACHE <francois.achache@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/softwarity/livewire.git"
+  },
+  "workspaces": [
+    "packages/protocol",
+    "packages/nestjs",
+    "packages/angular"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "check": "npm run check --workspaces --if-present",
+    "// version:all": "bumps the three packages together and points them at each other. The wire contract is described on both sides, so a version where they disagree is a version nobody can install safely",
+    "version:all": "node scripts/version-all.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}

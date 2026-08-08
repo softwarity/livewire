@@ -1,0 +1,41 @@
+{
+  "name": "@softwarity/livewire-protocol",
+  "version": "0.1.0",
+  "description": "The Livewire wire contract: frame types and the normative specification. Types only, no runtime.",
+  "keywords": [
+    "livewire",
+    "websocket",
+    "protocol",
+    "live-query",
+    "realtime"
+  ],
+  "homepage": "https://github.com/softwarity/livewire#readme",
+  "bugs": {
+    "url": "https://github.com/softwarity/livewire/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/softwarity/livewire.git",
+    "directory": "packages/protocol"
+  },
+  "license": "MIT",
+  "author": "François ACHACHE <francois.achache@gmail.com>",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "SPEC.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}
