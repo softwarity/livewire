@@ -2,6 +2,10 @@
 
 ## NEXT RELEASE
 
+---
+
+## 0.2.1
+
 ### Fixes
 
 - **`@softwarity/livewire` shipped its sources instead of its build.** The Angular package was published from the workspace root, where there is no `main`, no typings and no bundle — ng-packagr writes all of that into `dist`, and that directory *is* the package. Installing 0.1.0, 0.1.1 or 0.2.0 gave you a folder of TypeScript that resolves to nothing. Now published from `packages/angular/dist`. The other three packages carry `main`/`types` of their own and were always fine.
