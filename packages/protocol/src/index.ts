@@ -11,6 +11,18 @@
  * contract as the shape of a frame.
  */
 
+/**
+ * What comes off the wire: JSON, parsed.
+ *
+ * Narrower than `unknown` on purpose. A query has crossed a socket and been
+ * through `JSON.parse`, so it cannot be a function, a Date or a Map - and
+ * saying so lets a source read it without casting its way in.
+ */
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
+/** An object as JSON carries it - what a query almost always is. */
+export type JsonObject = { [key: string]: JsonValue };
+
 /** What every row a source publishes must carry. */
 export interface LiveRow {
   id: string;
@@ -52,7 +64,7 @@ export interface SubscribeFrame {
   /** Which source answers. */
   topic: string;
   /** Whatever that source's `readQuery` makes of it. */
-  query?: unknown;
+  query?: JsonValue;
 }
 
 export interface UnsubscribeFrame {
