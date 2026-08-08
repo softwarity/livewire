@@ -2,6 +2,10 @@
 
 ## NEXT RELEASE
 
+---
+
+## 0.3.0
+
 ### Features
 
 - **`@softwarity/livewire-protocol` and `-mock` ship for `import` as well as `require`.** They were CommonJS only, which every bundler consuming them reports as an optimization bailout — it cannot see through `require` to know what is unused, so the whole package lands in the bundle. Nest stays on the `require` branch, browsers and bundlers take the `import` one, and the warning is gone from the doc site's build.
