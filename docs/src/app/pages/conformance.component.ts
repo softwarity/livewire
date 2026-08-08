@@ -66,7 +66,7 @@ interface Scenario {
       </div>
     </div>
 
-    <h3>The scenarios</h3>
+    <h3>The scenarios a server must pass</h3>
 
     <p>Each names the clause it defends. A rule with no scenario is a rule that will be broken quietly.</p>
 
@@ -83,6 +83,41 @@ interface Scenario {
         }
       </tbody>
     </table>
+
+    <h3>And the other way: what a client must do</h3>
+
+    <p>
+      The suite above says what a server must <em>send</em>. Nothing in it says what a client must
+      <em>do</em> with what it receives — and that asymmetry cost two defects that thirty-two tests never
+      saw: a subscription opened before the socket finished connecting, and a component whose styles the
+      browser half-dropped. Both were client behaviour, and nothing exercised it.
+    </p>
+
+    <p>
+      <code>CLIENT_SCENARIOS</code> works the other way round: it feeds frames in and reads what the
+      screen would show, and what the client sent back. Both halves are covered — the transport, which
+      decides what goes on the wire and when, and the list, which decides what a frame does to the rows.
+    </p>
+
+    <table>
+      <thead>
+        <tr><th>Spec</th><th>Scenario</th></tr>
+      </thead>
+      <tbody>
+        @for (scenario of clientScenarios; track scenario.name) {
+          <tr>
+            <td class="spec-cell">{{ scenario.spec }}</td>
+            <td>{{ scenario.name }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    <div class="callout">
+      A <code>Consumer</code> is the whole adaptation layer: open a subscription, deliver a frame, drop
+      the socket, and answer what the screen holds. Anything that can do those can be put through the
+      suite — which is what makes "we also have a React client" a test run rather than a promise.
+    </div>
 
     <h3>Running them against your own server</h3>
 
@@ -160,12 +195,27 @@ for (const scenario of SCENARIOS) {
   protected readonly run = `npm test          # protocol, mock, nestjs, angular
 cd go && go test -race ./...`;
 
+  /** The client half, mirroring `CLIENT_SCENARIOS`. */
+  protected readonly clientScenarios: Scenario[] = [
+    { spec: '§2.1', name: 'opens with one subscribe naming the topic and the query' },
+    { spec: '§1', name: 'ends up subscribed even when it asked before the socket was open' },
+    { spec: '§5', name: 'takes a snapshot as the list, with its total and its pivot' },
+    { spec: '§5.2', name: 'applies a patch: upserted, removed, and the order given' },
+    { spec: '§5.2', name: 'reorders from ids alone, without being sent the rows again' },
+    { spec: '§4', name: 'asks again rather than apply a frame out of sequence' },
+    { spec: '§4', name: 'asks again rather than apply a patch naming a row it does not hold' },
+    { spec: '§2.2', name: 'leaves the list alone on an error frame' },
+    { spec: '§6', name: 'ignores a frame carrying another subscription id' },
+    { spec: '§3.3', name: 'closes with an unsubscribe naming the id it opened' },
+    { spec: '§6', name: 'subscribes again by itself after the socket drops' },
+  ];
+
   /**
    * Mirrors `SCENARIOS` from the mock package.
    *
-   * Listed rather than imported: the suite is a set of live sockets and timers,
-   * and pulling it into the doc bundle to render twelve strings would ship the
-   * whole harness to every reader.
+   * Listed rather than imported, both of them: the suites are live sockets and
+   * timers, and pulling them into the doc bundle to render two dozen strings
+   * would ship the whole harness to every reader.
    */
   protected readonly scenarios: Scenario[] = [
     { spec: '§3.1', name: 'answers a snapshot first, numbered one' },

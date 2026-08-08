@@ -24,14 +24,18 @@ Extrait du socle temps réel de `fpl-svc` / `fpl-ui` (en production), générali
 | | Paquet | Tests |
 |---|---|---|
 | ✅ | `packages/protocol` — types + `SPEC.md` normative + le diff (`snapshotOf`, `patchOf`, `signatureOf`) | 15 |
-| ✅ | `packages/mock` — serveur en mémoire **et** les 12 scénarios de conformité | 28 |
+| ✅ | `packages/mock` — serveur en mémoire, 12 scénarios serveur **et 11 scénarios client** | 28 |
 | ✅ | `packages/nestjs` — `@softwarity/nestjs-livewire` | 49 |
 | ✅ | `packages/angular` — `@softwarity/livewire` | 23 |
 | ✅ | `go/` — `github.com/softwarity/livewire/go` | 32, sous `-race` |
 | ✅ | `docs/` — site GitHub Pages, 7 pages, **démo qui tourne** | — |
 
-Les 12 scénarios passent contre **trois** serveurs : en mémoire, NestJS (socket
-`ws` réel), Go (binaire compilé, socket réel).
+Les 12 scénarios serveur passent contre **trois** serveurs : en mémoire, NestJS
+(socket `ws` réel), Go (binaire compilé, socket réel). Les 11 scénarios client
+passent contre le client Angular — ils nourrissent des trames et lisent ce que
+l'écran montrerait, ce qui couvre le transport *et* l'application des trames.
+Les deux défauts de la 0.2.x (envoi sur socket `CONNECTING`, styles avalés) sont
+passés à travers 32 tests parce que rien ne mettait le client à l'épreuve.
 
 CI : `unit-tests.yml` (job TypeScript + job Go), `release.yml` (bump commun,
 pose `vX.Y.Z` **et** `go/vX.Y.Z`, pousse avec `PAT_TOKEN`), `tag.yml` (publie sur

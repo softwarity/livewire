@@ -408,6 +408,28 @@ for (const scenario of SCENARIOS) {
 A conforming server exposes `rows` (a new row arrives at the **top**) and
 `still` (never changes).
 
+### Writing a client
+
+The suite above says what a server must *send*. `CLIENT_SCENARIOS` says what a
+client must **do** with what it receives — and that half matters just as much:
+two defects shipped because nothing exercised it, a subscription opened before
+the socket had connected and a component whose styles the browser half-dropped.
+
+```ts
+import { CLIENT_SCENARIOS } from '@softwarity/livewire-mock';
+
+for (const scenario of CLIENT_SCENARIOS) {
+  it(`${scenario.spec} ${scenario.name}`, async () => {
+    // open, close, deliver, drop, settle, and what the screen would show
+    await scenario.run(myConsumer());
+  });
+}
+```
+
+A `Consumer` is the whole adaptation layer. Both halves of a client are covered:
+the transport (what goes on the wire, and when) and the list (what a frame does
+to the rows).
+
 ## 6. Rules you must not break
 
 Each one has a failure mode that is invisible until it is expensive.

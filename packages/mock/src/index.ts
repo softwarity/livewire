@@ -248,3 +248,7 @@ class Client {
 
 export { Conversation, SCENARIOS } from './conformance';
 export type { Scenario, Wire } from './conformance';
+
+// The other direction: what a *client* must do with what it is sent.
+export { CLIENT_SCENARIOS } from './client-conformance';
+export type { ClientScenario, Consumer } from './client-conformance';

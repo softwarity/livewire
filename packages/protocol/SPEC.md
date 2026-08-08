@@ -168,10 +168,20 @@ The key is the source's business; the transport does not compute it.
 
 ## 7. Conformance
 
-`packages/mock/src/conformance.ts` holds the scenarios every server
-implementation must pass. They are driven over an abstract wire, so the same
-list runs against the in-memory server, the NestJS one and the Go one — the last
-two over a real socket.
+Two suites, one specification.
+
+`packages/mock/src/conformance.ts` holds the scenarios every **server** must
+pass. They are driven over an abstract wire, so the same list runs against the
+in-memory server, the NestJS one and the Go one — the last two over a real
+socket.
+
+`packages/mock/src/client-conformance.ts` holds the scenarios every **client**
+must pass. It works the other way: it feeds frames in and reads what the screen
+would show, and what the client sent back. Both halves of a client are covered —
+the transport, which decides what goes on the wire and when, and the list, which
+decides what a frame does to the rows. A client that gets the second right and
+the first wrong passes every unit test and holds an empty screen on a refresh,
+which is exactly what happened before this suite existed.
 
 Two implementations of one protocol diverge within months — not through
 carelessness, but through the cases nobody wrote down. The suite is what makes

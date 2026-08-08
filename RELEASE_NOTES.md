@@ -2,6 +2,10 @@
 
 ## NEXT RELEASE
 
+### Features
+
+- **A conformance suite for clients**, `CLIENT_SCENARIOS`, beside the one for servers. Eleven scenarios that feed frames in and read what the screen would show and what the client sent back — the transport and the list, both halves. The asymmetry was expensive: two defects shipped in 0.2.x because thirty-two tests all pointed at servers. Driving it needs a `Consumer` — open, close, deliver, drop, settle, and what the list holds — which is what turns "we also have a React client" into a test run.
+
 ### Breaking
 
 - **`length` and `pivot` are signals, and `onTotal` is gone.** They were getters, which a `computed` cannot follow: it reads the value once and never re-runs, because nothing tells it the value moved. A screen deriving from them — a counter, a divider drawn at `pivot` — had to watch `changes` and read the getter inside, which is exactly this signal written by hand and easy to forget. With `length()` a signal, the `onTotal` callback the constructor took is redundant, so it is removed.
