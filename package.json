@@ -4,13 +4,14 @@
   "private": true,
   "description": "Live query synchronisation over one WebSocket - workspace root",
   "license": "Apache-2.0",
-  "author": "François ACHACHE <francois.achache@gmail.com>",
+  "author": "Fran\u00e7ois ACHACHE <francois.achache@gmail.com>",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/softwarity/livewire.git"
   },
   "workspaces": [
     "packages/protocol",
+    "packages/mock",
     "packages/nestjs",
     "packages/angular"
   ],

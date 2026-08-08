@@ -4,12 +4,11 @@ import type { OnGatewayConnection, OnGatewayDisconnect, WsResponse } from '@nest
 import { EMPTY, Observable, Subject, defer, of } from 'rxjs';
 import { map, takeUntil } from 'rxjs/operators';
 import type { IncomingMessage } from 'http';
-import { NOT_AUTHORISED, UPDATE_EVENT } from '@softwarity/livewire-protocol';
+import { NOT_AUTHORISED, UPDATE_EVENT, patchOf, snapshotOf } from '@softwarity/livewire-protocol';
 import type { LiveRow, LiveWindow, SubscribeFrame, UnsubscribeFrame, UpdateFrame } from '@softwarity/livewire-protocol';
 import { LIVEWIRE_OPTIONS } from './livewire.options';
 import type { LivewireOptions } from './livewire.options';
 import { LivewireRegistry } from './livewire.registry';
-import { patchOf, snapshotOf } from './patch';
 
 /** What a socket has to look like to be written to. Kept minimal on purpose. */
 interface Socket {

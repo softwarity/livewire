@@ -5,7 +5,6 @@ export { LivewireGateway } from './livewire.gateway';
 export { LivewireRegistry } from './livewire.registry';
 export { LIVEWIRE_OPTIONS } from './livewire.options';
 export type { LivewireOptions } from './livewire.options';
-export { patchOf, snapshotOf, signatureOf } from './patch';
 export {
   WindowedSource,
   SingleWindowSource,
@@ -21,6 +20,9 @@ export {
 // The wire contract, re-exported so a consumer needs one import for the types
 // its sources produce.
 export type { Paged } from './windowed-source';
+// The diff lives in the protocol package: it is normative, and the in-page mock
+// server uses the same one.
+export { snapshotOf, patchOf, signatureOf } from '@softwarity/livewire-protocol';
 export type {
   JsonValue,
   JsonObject,

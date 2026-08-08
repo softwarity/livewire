@@ -130,3 +130,5 @@ export const UPDATE_EVENT = 'update';
 
 /** Policy violation (RFC 6455): the socket opened, the caller may not use it. */
 export const NOT_AUTHORISED = 1008;
+
+export { snapshotOf, patchOf, signatureOf } from './patch';

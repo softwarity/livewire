@@ -1,4 +1,4 @@
-import type { LiveRow, LiveWindow, PatchFrame, SnapshotFrame } from '@softwarity/livewire-protocol';
+import type { LiveRow, LiveWindow, PatchFrame, SnapshotFrame } from './index';
 
 /**
  * The first frame on a subscription: the window as it stands.

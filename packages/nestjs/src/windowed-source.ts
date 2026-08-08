@@ -1,8 +1,8 @@
 import { Observable, ReplaySubject, merge, of, share, timer } from 'rxjs';
 import { auditTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { signatureOf } from '@softwarity/livewire-protocol';
 import type { JsonObject, JsonValue, LiveWindow } from '@softwarity/livewire-protocol';
 import type { LiveSource } from './live-source';
-import { signatureOf } from './patch';
 
 /**
  * How long a burst of changes gathers before a window is read again.

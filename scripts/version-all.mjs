@@ -20,7 +20,7 @@ if (!/^\d+\.\d+\.\d+(-[\w.]+)?$/.test(version ?? '')) {
 
 // Whatever is there: the packages land one at a time, and a release before the
 // last of them exists is still a release the others have to agree on.
-const packages = ['packages/protocol', 'packages/nestjs', 'packages/angular'].filter((dir) =>
+const packages = ['packages/protocol', 'packages/mock', 'packages/nestjs', 'packages/angular'].filter((dir) =>
   existsSync(join(dir, 'package.json')),
 );
 const names = packages.map((dir) => JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).name);

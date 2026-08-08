@@ -1,5 +1,5 @@
 import { patchOf, signatureOf, snapshotOf } from '../src/patch';
-import type { LiveRow, LiveWindow } from '@softwarity/livewire-protocol';
+import type { LiveRow, LiveWindow } from '../src/index';
 
 const row = (id: string, version = 'v1'): LiveRow => ({ id, updatedAt: version });
 const window = (rows: LiveRow[], extra: Partial<LiveWindow> = {}): LiveWindow => ({ rows, ...extra });

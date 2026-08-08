@@ -1,13 +1,14 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
     "module": "commonjs",
     "declaration": true,
+    "target": "ES2021",
     "outDir": "dist",
-    "strict": true,
-    "esModuleInterop": true,
+    "lib": ["ES2021", "DOM"],
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true
   },
   "include": ["src/**/*.ts", "test/**/*.ts"]
 }
