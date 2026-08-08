@@ -22,12 +22,12 @@ jobs:
     steps:
       # Checked out with the default token; the tags below are pushed with the
       # PAT, because a tag pushed by GITHUB_TOKEN does not trigger tag.yml.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
       - name: Verify NPM token is valid
         run: |
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
