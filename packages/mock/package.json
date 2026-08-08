@@ -1,6 +1,6 @@
 {
   "name": "@softwarity/livewire-mock",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "An in-memory Livewire server: the same protocol, no socket. For demos, for tests, and for a screen with no backend yet.",
   "keywords": [
     "livewire",
@@ -39,7 +39,7 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "@softwarity/livewire-protocol": "0.1.1"
+    "@softwarity/livewire-protocol": "0.2.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",

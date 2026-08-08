@@ -2,6 +2,10 @@
 
 ## NEXT RELEASE
 
+---
+
+## 0.2.0
+
 ### Breaking
 
 - **`LiveWindowDataSource` injects the view it repaints, and `revision()` is gone.** Build it in a component field — where you were building it anyway — and it takes that view's `ChangeDetectorRef` and calls `markForCheck()` on every publication: the view is marked dirty *and* the zoneless scheduler is notified, which is the whole of what a screen used to have to arrange for itself. Built outside an injection context it now throws, which is the intended answer: a data source with no view to repaint has nobody to answer.
