@@ -3,12 +3,14 @@ import { Test } from '@nestjs/testing';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { Observable, Subject, of } from 'rxjs';
 import { WebSocket } from 'ws';
-import { Conversation, SCENARIOS } from '@softwarity/livewire-mock';
+import { Conversation, scenariosFor } from '@softwarity/livewire-mock';
 import type { Wire } from '@softwarity/livewire-mock';
 import type { INestApplication } from '@nestjs/common';
 import type { LiveWindow } from '@softwarity/livewire-protocol';
 import { LiveTopic } from '../src/live-source';
 import { LivewireModule } from '../src/livewire.module';
+import { LiveCommand } from '../src/live-command';
+import { LivewireNotifier } from '../src/livewire.notifier';
 import { SingleWindowSource, onChanges } from '../src/windowed-source';
 
 /**
@@ -78,7 +80,31 @@ class StillSource extends SingleWindowSource {
   }
 }
 
-@Module({ providers: [Feed, RowsSource, StillSource], exports: [Feed] })
+/**
+ * What a level 2 server must expose for the suite - SPEC §6.
+ *
+ * Commands sit on methods, in a family, the way an application writes them:
+ * several verbs about the same thing, sharing the same dependencies.
+ */
+@Injectable()
+class FixtureCommands {
+  constructor(
+    private readonly feed: Feed,
+    private readonly notifier: LivewireNotifier,
+  ) {}
+
+  @LiveCommand('touch')
+  touch(): void {
+    this.feed.touch();
+  }
+
+  @LiveCommand('announce')
+  announce(): void {
+    this.notifier.notify('announcements', { said: 'something happened' });
+  }
+}
+
+@Module({ providers: [Feed, RowsSource, StillSource, FixtureCommands], exports: [Feed] })
 class FixtureModule {}
 
 describe('conformance: the NestJS server', () => {
@@ -122,7 +148,7 @@ describe('conformance: the NestJS server', () => {
     };
   }
 
-  for (const scenario of SCENARIOS) {
+  for (const scenario of scenariosFor(2)) {
     it(`${scenario.spec} ${scenario.name}`, async () => {
       const wire = wireOf();
       const conversation = new Conversation(wire);

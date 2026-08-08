@@ -1,13 +1,23 @@
 import { Inject, Logger } from '@nestjs/common';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway } from '@nestjs/websockets';
 import type { OnGatewayConnection, OnGatewayDisconnect, WsResponse } from '@nestjs/websockets';
-import { EMPTY, Observable, Subject, defer, of } from 'rxjs';
-import { map, takeUntil } from 'rxjs/operators';
+import { EMPTY, Observable, Subject, Subscription, defer, from, isObservable, of } from 'rxjs';
+import { catchError, map, takeUntil } from 'rxjs/operators';
 import type { IncomingMessage } from 'http';
-import { NOT_AUTHORISED, UPDATE_EVENT, patchOf, snapshotOf } from '@softwarity/livewire-protocol';
-import type { LiveRow, LiveWindow, SubscribeFrame, UnsubscribeFrame, UpdateFrame } from '@softwarity/livewire-protocol';
+import { ACK_EVENT, NOTIFY_EVENT, NOT_AUTHORISED, UPDATE_EVENT, patchOf, snapshotOf } from '@softwarity/livewire-protocol';
+import type {
+  AckFrame,
+  CommandFrame,
+  JsonValue,
+  LiveRow,
+  LiveWindow,
+  SubscribeFrame,
+  UnsubscribeFrame,
+  UpdateFrame,
+} from '@softwarity/livewire-protocol';
 import { LIVEWIRE_OPTIONS } from './livewire.options';
 import type { LivewireOptions } from './livewire.options';
+import { LivewireNotifier } from './livewire.notifier';
 import { LivewireRegistry } from './livewire.registry';
 
 /** What a socket has to look like to be written to. Kept minimal on purpose. */
@@ -41,9 +51,13 @@ export class LivewireGateway implements OnGatewayConnection, OnGatewayDisconnect
    */
   private readonly sockets = new Map<Socket, Map<string, Subject<void>>>();
 
+  /** What each socket is listening to notifications with - SPEC §6.2. */
+  private readonly listening = new Map<Socket, Subscription>();
+
   constructor(
     private readonly registry: LivewireRegistry,
     @Inject(LIVEWIRE_OPTIONS) private readonly options: LivewireOptions,
+    private readonly notifier: LivewireNotifier,
   ) {}
 
   handleConnection(client: Socket, request: IncomingMessage): void {
@@ -56,6 +70,14 @@ export class LivewireGateway implements OnGatewayConnection, OnGatewayDisconnect
       return;
     }
     this.sockets.set(client, new Map());
+    // Notifications are not a subscription: every authorised socket gets them,
+    // and a client that does not know the topic ignores it.
+    this.listening.set(
+      client,
+      this.notifier.notifications.subscribe((notice) => {
+        client.send(JSON.stringify({ event: NOTIFY_EVENT, data: notice }));
+      }),
+    );
   }
 
   handleDisconnect(client: Socket): void {
@@ -64,6 +86,8 @@ export class LivewireGateway implements OnGatewayConnection, OnGatewayDisconnect
       closing.complete();
     }
     this.sockets.delete(client);
+    this.listening.get(client)?.unsubscribe();
+    this.listening.delete(client);
   }
 
   @SubscribeMessage('subscribe')
@@ -89,6 +113,40 @@ export class LivewireGateway implements OnGatewayConnection, OnGatewayDisconnect
     return this.updates(body.id, () => source.watch(query)).pipe(
       takeUntil(closing),
       map((data) => ({ event: UPDATE_EVENT, data })),
+    );
+  }
+
+  /**
+   * Something to do, answered by exactly one ack - SPEC §6.1.
+   *
+   * Whatever happens: done, refused, or a name nothing handles. A client that
+   * hears nothing back cannot tell a slow write from a lost frame.
+   *
+   * What the command changed is not in the answer. It reaches the screens
+   * through whatever subscriptions were watching it, on their own schedule -
+   * which is why nothing here orders the two.
+   */
+  @SubscribeMessage('command')
+  command(@ConnectedSocket() client: Socket, @MessageBody() body: CommandFrame): Observable<WsResponse<AckFrame>> {
+    // No id, nothing to answer under: ignored in silence, as for a subscribe.
+    if (!this.sockets.has(client) || typeof body?.id !== 'string' || body.id === '') {
+      return EMPTY;
+    }
+    const id = body.id;
+    const handler = this.registry.command(body.name);
+    if (!handler) {
+      return of(ack({ id, ok: false, reason: `No command '${body.name}'` }));
+    }
+    return defer(() => {
+      const answered = handler(body.payload);
+      return isObservable(answered) ? answered : from(Promise.resolve(answered));
+    }).pipe(
+      map((result) => ack(result === undefined ? { id, ok: true } : { id, ok: true, result: result as JsonValue })),
+      catchError((error: unknown) => {
+        const reason = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`command '${body.name}' refused: ${reason}`);
+        return of(ack({ id, ok: false, reason }));
+      }),
     );
   }
 
@@ -131,4 +189,9 @@ export class LivewireGateway implements OnGatewayConnection, OnGatewayDisconnect
       );
     });
   }
+}
+
+/** One acknowledgement, in the envelope Nest sends it in. */
+function ack(frame: AckFrame): WsResponse<AckFrame> {
+  return { event: ACK_EVENT, data: frame };
 }

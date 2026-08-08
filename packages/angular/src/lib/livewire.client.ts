@@ -1,9 +1,9 @@
 import { DOCUMENT } from '@angular/common';
 import { Inject, Injectable, InjectionToken, Optional, signal } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
-import { filter } from 'rxjs/operators';
-import { SUBSCRIBE_EVENT, UNSUBSCRIBE_EVENT, UPDATE_EVENT } from '@softwarity/livewire-protocol';
-import type { Envelope, JsonValue, LiveRow, UpdateFrame } from '@softwarity/livewire-protocol';
+import { filter, map } from 'rxjs/operators';
+import { ACK_EVENT, COMMAND_EVENT, NOTIFY_EVENT, SUBSCRIBE_EVENT, UNSUBSCRIBE_EVENT, UPDATE_EVENT } from '@softwarity/livewire-protocol';
+import type { AckFrame, Envelope, JsonValue, LiveRow, NotifyFrame, UpdateFrame } from '@softwarity/livewire-protocol';
 
 export interface LivewireConfig {
   /** Where the socket answers. Root-relative, so a gateway can route it. */
@@ -72,6 +72,12 @@ export class LivewireClient {
    */
   private readonly open = new Map<string, unknown>();
 
+  /** Commands asked for before the socket was up. Sent once, never replayed. */
+  private readonly pending = new Map<string, { id: string; name: string; payload?: JsonValue }>();
+
+  /** Counts commands, so no two share an id. */
+  private commands = 0;
+
   constructor(
     @Inject(LIVEWIRE_CONFIG) private readonly config: LivewireConfig,
     @Optional() @Inject(DOCUMENT) private readonly document: Document | null,
@@ -106,6 +112,63 @@ export class LivewireClient {
         this.send(UNSUBSCRIBE_EVENT, { id });
       };
     });
+  }
+
+  /**
+   * Asks for something to be done, and answers what came back - SPEC §6.1.
+   *
+   * One command, one answer, whatever happens: done, refused, or a name the
+   * server does not handle. The observable completes on that answer, and errors
+   * if the socket goes away before it arrives - a caller waiting forever is the
+   * one outcome a command must not have.
+   *
+   * **What the command changed is not in the answer.** A list it touched is
+   * republished by its own subscription, on that source's schedule. Reading the
+   * new state out of `result` would be a second version of it, free to disagree
+   * with the one on the screen.
+   */
+  command(name: string, payload?: JsonValue): Observable<AckFrame> {
+    return new Observable<AckFrame>((subscriber) => {
+      this.connect();
+      const id = `command:${(this.commands += 1)}`;
+
+      const answered = this.incoming
+        .pipe(
+          filter((envelope): envelope is Envelope<AckFrame> => {
+            return envelope.event === ACK_EVENT && (envelope.data as AckFrame)?.id === id;
+          }),
+        )
+        .subscribe((envelope) => {
+          subscriber.next(envelope.data);
+          subscriber.complete();
+        });
+
+      // Held until the socket is up, then sent - like a subscription. Unlike
+      // one, it is sent exactly once: replaying a command on every reconnection
+      // would do it twice.
+      this.pending.set(id, { id, name, payload });
+      this.flush();
+
+      return () => {
+        answered.unsubscribe();
+        this.pending.delete(id);
+      };
+    });
+  }
+
+  /**
+   * What the server says happened, outside any window - SPEC §6.2.
+   *
+   * An event, not a list: nothing to apply, nothing to hold. A topic nobody
+   * listens for is ignored rather than treated as an error.
+   */
+  notifications(topic: string): Observable<JsonValue | undefined> {
+    return this.incoming.pipe(
+      filter((envelope): envelope is Envelope<NotifyFrame> => {
+        return envelope.event === NOTIFY_EVENT && (envelope.data as NotifyFrame)?.topic === topic;
+      }),
+      map((envelope) => envelope.data.payload),
+    );
   }
 
   /**
@@ -166,6 +229,7 @@ export class LivewireClient {
       for (const asked of this.open.values()) {
         this.send(SUBSCRIBE_EVENT, asked);
       }
+      this.flush();
     };
 
     socket.onmessage = (frame: string): void => {
@@ -205,6 +269,23 @@ export class LivewireClient {
     native.onclose = (event: CloseEvent) => socket.onclose?.(event.code, event.reason);
     native.onerror = () => console.error('[livewire] socket error');
     return socket;
+  }
+
+  /**
+   * Sends the commands that were asked for before the socket was up.
+   *
+   * Removed as they go: a subscription is re-sent on every reconnection because
+   * the server forgets it, but a command that already reached the server must
+   * not happen twice because the socket blinked.
+   */
+  private flush(): void {
+    if (!this.live()) {
+      return;
+    }
+    for (const [id, asked] of this.pending) {
+      this.pending.delete(id);
+      this.send(COMMAND_EVENT, asked);
+    }
   }
 
   private send(event: string, data: unknown): void {

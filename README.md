@@ -68,8 +68,9 @@ in the same release.
   writes, no conflict resolution. It runs on your Postgres, with your SQL.
 - **Not Laravel Livewire or Phoenix LiveView.** Those push HTML because the
   server owns the rendering; this pushes data and the client renders.
-- **Not a generic pub/sub.** One client frame opens a subscription, one closes
-  it. That is the whole vocabulary.
+- **Not a generic pub/sub.** One frame opens a subscription, one closes it, one
+  asks for something to be done. There is no channel to join and no topic to
+  broadcast on for its own sake.
 
 ## Documentation
 

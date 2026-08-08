@@ -36,18 +36,17 @@ réaliste (trois jours). Élargir se paie sur ces trois lignes à la fois.
 | | | tests |
 |---|---|---|
 | ✅ | `packages/protocol` — types + **SPEC.md normative** | 15 |
-| ✅ | `packages/mock` — serveur en mémoire + **scénarios de conformité** | 28 |
-| ✅ | `packages/nestjs` — implémentation serveur | 49 |
-| ✅ | `packages/angular` — implémentation client | 23 |
+| ✅ | `packages/mock` — serveur en mémoire + **les deux suites de conformité** | 38 |
+| ✅ | `packages/nestjs` — implémentation serveur | 54 |
+| ✅ | `packages/angular` — implémentation client | 47 |
 | ✅ | `go/` — implémentation Go | 32, sous `-race` |
-| ✅ | suite de conformité — 12 scénarios × 3 serveurs | |
+| ✅ | conformité — 17 scénarios serveur × 3 serveurs, 14 scénarios client | |
 | ✅ | doc GitHub Pages, avec démo pilotée par le serveur en mémoire | |
 | ✅ | CI : `unit-tests`, `release` (deux tags), `tag`, `deploy-doc` | |
 | ✅ | **publication** — 0.1.0 sur npm, `go/v0.1.0`, Release GitHub | |
-| ⬜ | niveau 2 : commandes et notifications | |
+| ✅ | **niveau 2** : commandes et notifications, conformes sur les 3 serveurs et le client | |
 
-Les douze scénarios passent sur les trois serveurs. Ce qui reste avant une
-`0.1.0` publiable est au §4.
+Tout est fait, niveau 2 compris. Rien n'est en cours.
 
 ---
 
@@ -178,7 +177,8 @@ qui ont coûté deux tentatives.
 
 ## 5. Niveau 2 — commandes et notifications
 
-**Après** la première version publiée, pas avant.
+**Fait**, après la première version publiée comme prévu. Ce qui suit reste comme
+trace des raisons.
 
 - `command(name, payload)` client → serveur avec accusé, sur le même socket.
   Règle une gêne réelle : aujourd'hui une écriture part en REST et sa

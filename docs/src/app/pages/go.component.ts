@@ -61,6 +61,22 @@ import { CodeComponent } from '../code/code.component';
       <li><strong>A failed read publishes nothing.</strong> It is logged; the subscription stays open and the next wake tries again.</li>
     </ul>
 
+    <h3>Commands and notifications</h3>
+
+    <p>Level 2, and optional. Registration is explicit, as it is for a source.</p>
+
+    <app-code lang="go" [code]="commands" />
+
+    <p>
+      Returning an error refuses the command, and its message becomes the reason the client is given.
+      Every command is answered exactly once — including one naming something nothing handles.
+    </p>
+
+    <div class="callout warn">
+      <strong>What a command changed does not go in its answer.</strong> A list it touched is republished
+      by its own subscription. Two answers to one question is what this protocol exists to avoid.
+    </div>
+
     <h3>The one rule to remember</h3>
 
     <div class="callout warn">
@@ -72,9 +88,9 @@ import { CodeComponent } from '../code/code.component';
     <h3>Tests</h3>
 
     <p>
-      The Go suite runs under <code>-race</code> in CI, and eleven of its tests drive a real socket
-      through the shared <a routerLink="/conformance">conformance scenarios</a> — the same twelve the
-      TypeScript servers answer.
+      The Go suite runs under <code>-race</code> in CI, and the shared
+      <a routerLink="/conformance">conformance scenarios</a> are driven against a compiled binary over a
+      real socket — the same list the TypeScript servers answer, level 2 included.
     </p>
 
     <app-code lang="bash" [code]="tests" />
@@ -131,6 +147,15 @@ func (s *MessagesSource) Read(ctx context.Context, q any) (livewire.Window, erro
     UpdatedAt: "v7", // the version - see the rule below
     Data:      map[string]any{"text": "…", "station": "LFPG"},
 }`;
+
+  protected readonly commands = `registry.Handle("flight.acknowledge", func(ctx context.Context, payload json.RawMessage) (any, error) {
+    asked := struct{ ID string \`json:"id"\` }{}
+    _ = json.Unmarshal(payload, &asked)
+    return nil, flights.Acknowledge(ctx, asked.ID)
+})
+
+// Something that happened, told once, outside any window.
+server.Notify(ctx, "import.finished", map[string]any{"count": 412})`;
 
   protected readonly tests = `cd go && go vet ./... && go test -race ./...`;
 }

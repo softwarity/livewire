@@ -9,7 +9,8 @@ import { CodeComponent } from '../code/code.component';
     <h2>The protocol</h2>
 
     <p>
-      Two frames go up, three come down. Everything else — how a source is woken, what a query means,
+      Two frames go up and three come down; two more of each are level 2, and optional. Everything else
+      — how a source is woken, what a query means,
       where the rows come from — is deliberately outside the contract. The full normative text lives in
       <a href="https://github.com/softwarity/livewire/blob/main/packages/protocol/SPEC.md" target="_blank" rel="noopener">SPEC.md</a>;
       this page is the readable version.
@@ -70,6 +71,11 @@ import { CodeComponent } from '../code/code.component';
           <td><code>&#123; id &#125;</code></td>
           <td>Closes it. The socket and the other subscriptions are untouched.</td>
         </tr>
+        <tr>
+          <td><code>command</code></td>
+          <td><code>&#123; id, name, payload? &#125;</code></td>
+          <td>Level 2 — something to do. Answered by exactly one <code>ack</code>.</td>
+        </tr>
       </tbody>
     </table>
 
@@ -77,7 +83,7 @@ import { CodeComponent } from '../code/code.component';
 
     <h4>Server → client</h4>
 
-    <p>All three carry <code>event: "update"</code>.</p>
+    <p>The three shapes an <code>update</code> carries.</p>
 
     <table>
       <thead>
@@ -91,6 +97,51 @@ import { CodeComponent } from '../code/code.component';
     </table>
 
     <app-code lang="json" [code]="patch" />
+
+    <h3>Commands and notifications</h3>
+
+    <p>
+      Level 2, and optional: a server may implement neither, either or both, and a client must tolerate
+      one that implements neither. Everything above stands either way.
+    </p>
+
+    <table>
+      <thead>
+        <tr><th><code>event</code></th><th><code>data</code></th><th></th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>ack</code></td>
+          <td><code>&#123; id, ok, result? &#125;</code> or <code>&#123; id, ok: false, reason &#125;</code></td>
+          <td>The one answer a command gets, whatever happened — including a name the server does not handle.</td>
+        </tr>
+        <tr>
+          <td><code>notify</code></td>
+          <td><code>&#123; topic, payload? &#125;</code></td>
+          <td>An event. No id, no sequence, nothing to apply.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout warn">
+      <strong>The acknowledgement is not the new state.</strong> A command that changes what a list holds
+      is followed by whatever that list's subscription publishes, through the ordinary path. Putting the
+      new rows in <code>result</code> would be a second answer to the same question, free to disagree
+      with the first — the mistake this whole protocol exists to avoid.
+    </div>
+
+    <p>
+      Nothing orders an acknowledgement against the frames its command caused: a write announced to a
+      source is read and published on that source's own schedule.
+    </p>
+
+    <app-code lang="json" [code]="command" />
+
+    <div class="callout">
+      The test for whether something is a notification rather than a window: a reader who arrived late
+      missed it. If that matters, it was never a notification — it is state, and state belongs in a
+      subscription.
+    </div>
 
     <h3>Sequence</h3>
 
@@ -193,6 +244,12 @@ export class ProtocolComponent {
   protected readonly subscribe = `{ "event": "subscribe",
   "data": { "id": "messages:3", "topic": "messages",
             "query": { "search": "delay", "offset": 100, "limit": 50 } } }`;
+
+  protected readonly command = `{ "event": "command",
+  "data": { "id": "c-17", "name": "flight.acknowledge", "payload": { "id": "fpl-901" } } }
+
+{ "event": "ack",    "data": { "id": "c-17", "ok": true } }
+{ "event": "notify", "data": { "topic": "import.finished", "payload": { "count": 412 } } }`;
 
   protected readonly patch = `{ "event": "update",
   "data": { "id": "messages:3", "type": "patch",

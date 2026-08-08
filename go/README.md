@@ -56,6 +56,29 @@ func (s *MessagesSource) Read(ctx context.Context, q any) (livewire.Window, erro
   snapshot, and its patches are computed against the rows it actually holds.
 - **Cleanup.** The last watcher leaves, the read stops and the entry is dropped.
 
+## Commands and notifications
+
+Level 2, and optional.
+
+```go
+registry.Handle("flight.acknowledge", func(ctx context.Context, payload json.RawMessage) (any, error) {
+    asked := struct{ ID string }{}
+    _ = json.Unmarshal(payload, &asked)
+    return nil, flights.Acknowledge(ctx, asked.ID)
+})
+
+// Something that happened, told once, outside any window.
+server.Notify(ctx, "import.finished", map[string]any{"count": 412})
+```
+
+Returning an error refuses the command, and its message becomes the reason the
+client is given. Every command is answered exactly once, whatever happens -
+including one naming something nothing handles.
+
+**What a command changed does not go in its answer.** A list it touched is
+republished by its own subscription. Two answers to one question is what this
+protocol exists to avoid.
+
 ## The one rule to remember
 
 `UpdatedAt` is the version of a row, and **everything the row shows has to be in

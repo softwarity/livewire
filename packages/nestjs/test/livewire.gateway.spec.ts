@@ -1,6 +1,7 @@
 import { Observable, Subject } from 'rxjs';
 import type { IncomingMessage } from 'http';
 import { LivewireGateway } from '../src/livewire.gateway';
+import { LivewireNotifier } from '../src/livewire.notifier';
 import { LivewireRegistry } from '../src/livewire.registry';
 import type { LiveSource } from '../src/live-source';
 import type { LiveWindow, UpdateFrame } from '@softwarity/livewire-protocol';
@@ -49,7 +50,7 @@ describe('LivewireGateway', () => {
   let source: Manual;
 
   function gatewayOf(options: Partial<{ authorize: () => boolean; refusal: () => string }> = {}): LivewireGateway {
-    return new LivewireGateway(registry, { path: '/ws', ...options });
+    return new LivewireGateway(registry, { path: '/ws', ...options }, new LivewireNotifier());
   }
 
   /** Subscribes the way Nest does: it consumes the returned stream itself. */
@@ -62,7 +63,7 @@ describe('LivewireGateway', () => {
   }
 
   beforeEach(() => {
-    registry = new LivewireRegistry({ getProviders: () => [] } as never);
+    registry = new LivewireRegistry({ getProviders: () => [] } as never, { getAllMethodNames: () => [] } as never);
     source = new Manual();
     registry.register('rows', source);
   });

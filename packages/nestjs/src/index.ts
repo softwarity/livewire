@@ -3,6 +3,9 @@ export type { LiveSource } from './live-source';
 export { LivewireModule } from './livewire.module';
 export { LivewireGateway } from './livewire.gateway';
 export { LivewireRegistry } from './livewire.registry';
+export { LivewireNotifier } from './livewire.notifier';
+export { LiveCommand, LIVE_COMMAND } from './live-command';
+export type { CommandResult, LiveCommandHandler } from './live-command';
 export { LIVEWIRE_OPTIONS } from './livewire.options';
 export type { LivewireOptions } from './livewire.options';
 export {
@@ -24,6 +27,9 @@ export type { Paged } from './windowed-source';
 // server uses the same one.
 export { snapshotOf, patchOf, signatureOf } from '@softwarity/livewire-protocol';
 export type {
+  AckFrame,
+  CommandFrame,
+  NotifyFrame,
   JsonValue,
   JsonObject,
   LiveRow,

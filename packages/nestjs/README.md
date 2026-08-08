@@ -58,6 +58,41 @@ the registry finds it by its decorator.
 | `SingleWindowSource` | one window, no query: a filter list, a setting |
 | `WindowedSource<Q>` | anything else - you write `readQuery` and `keyOf` too |
 
+## Commands and notifications
+
+Level 2, and optional: a screen that only reads lists needs neither.
+
+```ts
+@Injectable()
+export class FlightCommands {
+  constructor(private readonly flights: FlightService, private readonly livewire: LivewireNotifier) {}
+
+  // Something to do, answered by exactly one ack - whatever happens.
+  @LiveCommand('flight.acknowledge')
+  acknowledge(payload: JsonObject): Observable<void> {
+    return this.flights.acknowledge(text(payload['id']));
+  }
+
+  // Something that happened, told once, outside any window.
+  finished(count: number): void {
+    this.livewire.notify('import.finished', { count });
+  }
+}
+```
+
+Commands are marked on **methods**, unlike `@LiveTopic`: a topic is a list and
+there is one per class, while commands come in families sharing dependencies.
+Throwing - or an observable that errors - refuses the command, and the message
+becomes the reason the client is given.
+
+**What a command changed does not go in its answer.** A list it touched is
+republished by its own subscription, on that source's schedule. Putting the new
+rows in `result` would be a second version of them, free to disagree with the
+one on screen - the mistake this whole library exists to avoid.
+
+`LivewireNotifier` is injectable anywhere: `LivewireModule` is global, because
+`forRoot` is called once and a feature module has no second chance to import it.
+
 ## The one rule to remember
 
 `updatedAt` is the version of a row, and **everything the row shows has to be in

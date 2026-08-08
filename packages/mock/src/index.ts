@@ -1,4 +1,7 @@
 import {
+  ACK_EVENT,
+  COMMAND_EVENT,
+  NOTIFY_EVENT,
   NOT_AUTHORISED,
   SUBSCRIBE_EVENT,
   UNSUBSCRIBE_EVENT,
@@ -8,14 +11,29 @@ import {
   snapshotOf,
 } from '@softwarity/livewire-protocol';
 import type {
+  AckFrame,
+  CommandFrame,
   Envelope,
   JsonValue,
   LiveRow,
   LiveWindow,
+  NotifyFrame,
   SubscribeFrame,
   UnsubscribeFrame,
   UpdateFrame,
 } from '@softwarity/livewire-protocol';
+
+/**
+ * Something the server can be asked to do - SPEC §6.1.
+ *
+ * Answer what the caller should get back, or nothing. Throw to refuse: the
+ * message becomes the reason, and the client gets `ok: false` rather than
+ * silence.
+ *
+ * What the command *changed* is not returned here. It reaches the screen
+ * through whatever subscription was already watching it.
+ */
+export type MockCommand = (payload: JsonValue | undefined) => JsonValue | void;
 
 /**
  * One live list, in memory.
@@ -77,6 +95,7 @@ export interface MockServerOptions {
  */
 export class MockServer {
   private readonly sources = new Map<string, MockSource<never>>();
+  private readonly commands = new Map<string, MockCommand>();
   private readonly clients = new Set<Client>();
 
   constructor(private readonly options: MockServerOptions = {}) {}
@@ -120,6 +139,29 @@ export class MockServer {
 
   find(topic: string): MockSource<never> | undefined {
     return this.sources.get(topic);
+  }
+
+  /** Adds something the server can be asked to do. Registering twice replaces. */
+  handle(name: string, command: MockCommand): this {
+    this.commands.set(name, command);
+    return this;
+  }
+
+  handler(name: string): MockCommand | undefined {
+    return this.commands.get(name);
+  }
+
+  /**
+   * Tells every open connection that something happened - SPEC §6.2.
+   *
+   * An event, not a window: nothing here is applied to a list, and a client
+   * that does not know the topic ignores it. Who receives one is the server's
+   * business, which here means everybody.
+   */
+  notify(topic: string, payload?: JsonValue): void {
+    for (const client of this.clients) {
+      client.notify(topic, payload);
+    }
   }
 }
 
@@ -177,6 +219,8 @@ class Client {
       this.subscribe(envelope.data as SubscribeFrame);
     } else if (envelope.event === UNSUBSCRIBE_EVENT) {
       this.open.delete((envelope.data as UnsubscribeFrame).id);
+    } else if (envelope.event === COMMAND_EVENT) {
+      this.command(envelope.data as CommandFrame);
     }
   }
 
@@ -233,10 +277,49 @@ class Client {
     this.push(frame);
   }
 
-  private push(frame: UpdateFrame): void {
-    const envelope: Envelope<UpdateFrame> = { event: UPDATE_EVENT, data: frame };
-    this.options.onTraffic?.('out', envelope);
+  /**
+   * Does what a command asks, and answers exactly one ack - SPEC §6.1.
+   *
+   * Whatever happens: done, refused, or a name nobody handles. A client that
+   * hears nothing back cannot tell a slow write from a lost frame.
+   */
+  private command(frame: CommandFrame): void {
+    if (typeof frame.id !== 'string' || frame.id === '') {
+      // No id, nothing to answer under.
+      return;
+    }
+    const handler = this.server.handler(frame.name);
+    if (!handler) {
+      this.answer({ id: frame.id, ok: false, reason: `No command '${frame.name}'` });
+      return;
+    }
+    try {
+      const result = handler(frame.payload);
+      this.answer(result === undefined ? { id: frame.id, ok: true } : { id: frame.id, ok: true, result });
+    } catch (error) {
+      this.answer({ id: frame.id, ok: false, reason: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
+  notify(topic: string, payload?: JsonValue): void {
+    if (!this.authorised) {
+      return;
+    }
+    this.send<NotifyFrame>(NOTIFY_EVENT, payload === undefined ? { topic } : { topic, payload });
+  }
+
+  private answer(frame: AckFrame): void {
+    this.send<AckFrame>(ACK_EVENT, frame);
+  }
+
+  private send<Frame>(event: string, frame: Frame): void {
+    const envelope: Envelope<Frame> = { event, data: frame };
+    this.options.onTraffic?.('out', envelope as Envelope<unknown>);
     this.socket.onmessage?.(JSON.stringify(envelope));
+  }
+
+  private push(frame: UpdateFrame): void {
+    this.send<UpdateFrame>(UPDATE_EVENT, frame);
   }
 
   private close(): void {
@@ -246,9 +329,9 @@ class Client {
   }
 }
 
-export { Conversation, SCENARIOS } from './conformance.js';
+export { Conversation, SCENARIOS, scenariosFor } from './conformance.js';
 export type { Scenario, Wire } from './conformance.js';
 
 // The other direction: what a *client* must do with what it is sent.
-export { CLIENT_SCENARIOS } from './client-conformance.js';
+export { CLIENT_SCENARIOS, clientScenariosFor } from './client-conformance.js';
 export type { ClientScenario, Consumer } from './client-conformance.js';

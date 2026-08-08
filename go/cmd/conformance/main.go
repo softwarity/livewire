@@ -103,17 +103,29 @@ func main() {
 	registry.Register("rows", rows{feed: shared})
 	registry.Register("still", still{feed: shared})
 
-	mux := http.NewServeMux()
-	mux.Handle("/ws", livewire.NewServer(registry, livewire.Options{
+	server := livewire.NewServer(registry, livewire.Options{
 		Logger:  slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelWarn})),
 		Origins: []string{"*"},
-	}))
+	})
+
+	// What a level 2 server must expose for the suite — SPEC §6.
+	registry.Handle("touch", func(_ context.Context, _ json.RawMessage) (any, error) {
+		shared.touch()
+		return nil, nil
+	})
+	registry.Handle("announce", func(ctx context.Context, _ json.RawMessage) (any, error) {
+		server.Notify(ctx, "announcements", map[string]any{"said": "something happened"})
+		return nil, nil
+	})
+
+	mux := http.NewServeMux()
+	mux.Handle("/ws", server)
 	mux.HandleFunc("/touch", func(writer http.ResponseWriter, _ *http.Request) {
 		shared.touch()
 		writer.WriteHeader(http.StatusNoContent)
 	})
 
-	server := &http.Server{Handler: mux}
+	listening := &http.Server{Handler: mux}
 	listener, err := listen(*address)
 	if err != nil {
 		panic(err)
@@ -121,7 +133,7 @@ func main() {
 	// The port goes to stdout so a test runner that asked for :0 knows where to
 	// connect.
 	fmt.Printf("listening %s\n", listener.Addr().String())
-	_ = server.Serve(listener)
+	_ = listening.Serve(listener)
 }
 
 func listen(address string) (net.Listener, error) {

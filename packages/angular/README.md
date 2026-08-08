@@ -47,6 +47,22 @@ constructor() {
 <lw-live-indicator />
 ```
 
+## Commands and notifications
+
+```ts
+// Something to do. One answer, whatever happens.
+this.client.command('flight.acknowledge', { id }).subscribe((ack) => {
+  if (!ack.ok) this.toast(ack.reason);
+});
+
+// Something that happened, outside any window.
+this.client.notifications('import.finished').subscribe((payload) => this.toast(payload));
+```
+
+The list does not come back in the answer: whatever the command changed reaches
+the screen through the subscription already watching it. So do not reach into
+`ack.result` for rows - read them where they were already coming from.
+
 ## Three rules that are not obvious
 
 Each of these cost a debugging session in the application this came from.

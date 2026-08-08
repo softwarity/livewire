@@ -2,6 +2,20 @@
 
 ## NEXT RELEASE
 
+### Features
+
+- **Level 2: commands and notifications** — implemented in all three servers and in the Angular client, and specified in `SPEC.md` §6 before any of them was written.
+
+  `command(name, payload)` asks for something to be done and gets **exactly one** acknowledgement, whatever happens: done, refused, or a name the server does not handle. A client that hears nothing back cannot tell a slow write from a lost frame. On NestJS a command is a method carrying `@LiveCommand('name')`; on Go it is `registry.Handle(name, …)`; from a screen it is `client.command(name, payload)`.
+
+  `notify(topic, payload)` tells the screens that something happened, outside any window: no id, no sequence, nothing to apply. `LivewireNotifier.notify(…)` on NestJS, `server.Notify(ctx, …)` on Go, `client.notifications(topic)` on a screen.
+
+  **The acknowledgement is not the new state.** A list a command changed is republished by its own subscription, on that source's schedule — so do not read rows out of `result`. Two answers to one question is the mistake this protocol exists to avoid, and the one rule the spec writes in bold here.
+
+  Both are optional: a server may implement neither, and a client must tolerate one that does. `scenariosFor(level)` and `clientScenariosFor(level)` say which a fixture claims, so a skipped scenario cannot pass for a green one.
+
+- **`LivewireModule` is global.** `forRoot` is called once at the root, so a feature module that wants to announce something had no second chance to import it. Nothing in that module holds application state.
+
 ---
 
 ## 0.3.0

@@ -41,17 +41,28 @@ ignored. It **MUST NOT** close the socket.
 |---|---|
 | `subscribe` | `{ id, topic, query? }` |
 | `unsubscribe` | `{ id }` |
+| `command` | `{ id, name, payload? }` |
 
-`id` **MUST** be a non-empty string, unique among that socket's open
-subscriptions. `topic` **MUST** be a non-empty string. `query` is opaque to the
-transport and **MAY** be absent.
+`id` **MUST** be a non-empty string, unique among what that socket has in
+flight. `topic` and `name` **MUST** be non-empty strings. `query` and `payload`
+are opaque to the transport and **MAY** be absent.
 
-A `subscribe` whose `id` is missing or empty **MUST** be ignored silently: there
-is no id to answer under.
+A frame whose `id` is missing or empty **MUST** be ignored silently: there is no
+id to answer under.
+
+Subscriptions and commands share the `id` namespace. Reusing an open
+subscription's id for a command is a client error, and the server **MAY** answer
+either as it sees fit — it is not required to detect it.
 
 ### 2.2 Server → client
 
-All three carry `event: "update"`.
+| `event` | `data` |
+|---|---|
+| `update` | one of the three below |
+| `ack` | `{ id, ok, result? }` or `{ id, ok: false, reason }` |
+| `notify` | `{ topic, payload? }` |
+
+The three shapes an `update` carries:
 
 | `data.type` | Fields |
 |---|---|
@@ -150,7 +161,53 @@ and a screen repainting on every read is a screen nobody can use.
 Two subscriptions whose queries produce the same key **SHOULD** share one read.
 The key is the source's business; the transport does not compute it.
 
-## 6. What is not in this contract
+## 6. Commands and notifications
+
+Level 2. A server **MAY** implement neither, either, or both; a client **MUST**
+tolerate a server that implements neither. Everything in §1–§5 stands whether or
+not these exist.
+
+### 6.1 `command` — client → server, acknowledged
+
+A `command` names something to do, not something to read.
+
+The server **MUST** answer exactly one `ack` carrying the same `id`, whatever
+happens: a command that succeeded, one that failed, and one naming something the
+server does not know all end in an `ack`. A client that never hears back cannot
+tell a slow write from a lost frame.
+
+- `ok: true` **MAY** carry a `result`, which is opaque to the transport.
+- `ok: false` **MUST** carry a human-readable `reason`.
+- A command naming something the server does not handle **MUST** answer
+  `ok: false`.
+
+> **The acknowledgement is not the new state.** A command that changes what a
+> list holds is followed by whatever that list's subscription publishes, through
+> the ordinary path of §5. Putting the new rows in `result` would be a second
+> answer to the same question, free to disagree with the first — the mistake
+> this whole protocol exists to avoid.
+
+The `ack` **MAY** arrive before or after the frames the command caused. Nothing
+orders them: a write announced to a source is read and published on that
+source's own schedule.
+
+Commands **MUST NOT** open, move or close a subscription.
+
+### 6.2 `notify` — server → client, one-off
+
+A `notify` is an event, not a window: no `id`, no `sequence`, no diff, nothing
+to apply. `topic` says what it is about; `payload` is opaque.
+
+Which sockets receive one is the server's business — the transport carries no
+subscription for notifications, and a client **MUST** ignore a `topic` it does
+not know rather than treat it as an error.
+
+A `notify` **MUST NOT** be used to carry what a subscription would carry. If a
+screen needs to hold it, show it, or reconcile it, it is a window and belongs in
+§5. What this is for is what has no state: a job finished, an import failed,
+something happened that a reader should be told once.
+
+## 7. What is not in this contract
 
 - **How a source is woken.** Timers, database triggers, a message broker — the
   contract says what a window looks like, not what causes one to be read.
@@ -166,7 +223,7 @@ The key is the source's business; the transport does not compute it.
 - **Ordering between subscriptions.** Frames for two different ids may interleave
   in any order.
 
-## 7. Conformance
+## 8. Conformance
 
 Two suites, one specification.
 

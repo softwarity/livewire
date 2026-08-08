@@ -24,9 +24,9 @@ Extrait du socle temps réel de `fpl-svc` / `fpl-ui` (en production), générali
 | | Paquet | Tests |
 |---|---|---|
 | ✅ | `packages/protocol` — types + `SPEC.md` normative + le diff (`snapshotOf`, `patchOf`, `signatureOf`) | 15 |
-| ✅ | `packages/mock` — serveur en mémoire, 12 scénarios serveur **et 11 scénarios client** | 28 |
-| ✅ | `packages/nestjs` — `@softwarity/nestjs-livewire` | 49 |
-| ✅ | `packages/angular` — `@softwarity/livewire` | 23 |
+| ✅ | `packages/mock` — serveur en mémoire, 17 scénarios serveur **et 14 scénarios client** | 38 |
+| ✅ | `packages/nestjs` — `@softwarity/nestjs-livewire` | 54 |
+| ✅ | `packages/angular` — `@softwarity/livewire` | 47 |
 | ✅ | `go/` — `github.com/softwarity/livewire/go` | 32, sous `-race` |
 | ✅ | `docs/` — site GitHub Pages, 7 pages, **démo qui tourne** | — |
 
@@ -41,8 +41,8 @@ CI : `unit-tests.yml` (job TypeScript + job Go), `release.yml` (bump commun,
 pose `vX.Y.Z` **et** `go/vX.Y.Z`, pousse avec `PAT_TOKEN`), `tag.yml` (publie sur
 npm dans l'ordre protocol → mock → nestjs → angular, après le build), `deploy-doc.yml`.
 
-**Il reste** : le niveau 2 (commandes et notifications, TODO §5). Rien d'autre
-n'est en cours.
+**Il reste** : rien de prévu. Le niveau 2 (commandes et notifications) est fait
+et conforme sur les trois serveurs et sur le client.
 
 ## 3. Carte du dépôt
 
@@ -73,6 +73,14 @@ Chacune a coûté une session de débogage ou une discussion déjà eue.
 - Une lecture inchangée **ne publie rien** (§5.3). Comparaison par
   `signatureOf`, jamais à la main : `total` et `pivot` en font partie.
 - Refus de connexion : **frame d'erreur d'abord, fermeture 1008 ensuite**.
+- **Niveau 2 (SPEC §6)** : une commande reçoit **exactement un accusé**, quoi
+  qu'il arrive — y compris pour un nom que personne ne traite. Et l'accusé
+  **n'est pas le nouvel état** : ce que la commande a changé repart par
+  l'abonnement qui regardait déjà, jamais dans `result`. Deux réponses à une même
+  question, c'est précisément ce que ce protocole existe pour éviter.
+- Une notification n'a ni id ni séquence ni diff. Le test : un lecteur arrivé en
+  retard l'a manquée — si ça compte, ce n'était pas une notification mais une
+  fenêtre.
 
 **Serveur NestJS**
 
@@ -82,6 +90,12 @@ Chacune a coûté une session de débogage ou une discussion déjà eue.
 - Le comptage de références est écrit à la main (`watchers` + drapeau `done`) :
   `finalize` se déclenche aussi à la complétion et retirait la clé d'une fenêtre
   encore valable.
+- `LivewireModule` est **global** : `forRoot` est appelé une fois à la racine, et
+  un module de fonctionnalité qui veut annoncer quelque chose n'a pas de seconde
+  occasion de l'importer. Rien dans ce module ne porte d'état applicatif.
+- Les commandes sont marquées sur des **méthodes** (`@LiveCommand`), pas sur une
+  classe comme `@LiveTopic` : un topic est une liste et il y en a une par classe,
+  alors que les commandes viennent par familles partageant leurs dépendances.
 - La gateway configurée est définie **dans** `forRoot` (le chemin est un argument
   de décorateur) avec un constructeur explicite (`design:paramtypes` ne s'hérite
   pas).

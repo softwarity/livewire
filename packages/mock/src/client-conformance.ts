@@ -13,6 +13,23 @@ import type { Envelope, JsonValue, LiveRow, UpdateFrame } from '@softwarity/live
  * looks perfect in unit tests and holds an empty screen in production.
  */
 export interface Consumer {
+  /**
+   * Asks for something to be done, and answers what came back - SPEC §6.1.
+   *
+   * Absent when the client does not claim level 2, which the suite then skips.
+   */
+  command?(name: string, payload?: JsonValue): Promise<{ ok: boolean; result?: JsonValue; reason?: string }>;
+
+  /**
+   * What the client made of the notifications it was sent - SPEC §6.2.
+   *
+   * The level 2 scenarios announce on `announcements`, the way the server suite
+   * fixes `rows` and `still`. A harness listens the way a screen would - through
+   * the client's own API, under the topic - so what is checked is that it
+   * arrives there, not that a frame went past.
+   */
+  notified?(topic: string): JsonValue[];
+
   /** Opens a subscription on a topic. */
   open(topic: string, query?: JsonValue): void;
 
@@ -51,6 +68,13 @@ export interface Consumer {
 
 export interface ClientScenario {
   name: string;
+  /**
+   * Which level of the specification this belongs to.
+   *
+   * Absent or 1: every client must pass it. 2: commands and notifications,
+   * which a client may not implement.
+   */
+  level?: 1 | 2;
   /** The clause of SPEC.md this defends. */
   spec: string;
   run(consumer: Consumer): Promise<void>;
@@ -83,6 +107,10 @@ function expect(actual: unknown, wanted: unknown, what: string): void {
  * suites, one specification: a client that passes this and a server that passes
  * that can be written by people who never meet.
  */
+export function clientScenariosFor(level: 1 | 2): ClientScenario[] {
+  return CLIENT_SCENARIOS.filter((scenario) => (scenario.level ?? 1) <= level);
+}
+
 export const CLIENT_SCENARIOS: ClientScenario[] = [
   {
     name: 'opens with one subscribe naming the topic and the query',
@@ -329,6 +357,44 @@ export const CLIENT_SCENARIOS: ClientScenario[] = [
       if (frames(consumer, 'subscribe').length <= before) {
         throw new Error('the subscription was not opened again on the new socket');
       }
+    },
+  },
+  {
+    name: 'a command is answered, and the answer says whether it was done',
+    spec: '§6.1',
+    level: 2,
+    async run(consumer) {
+      const ack = await consumer.command!('touch');
+
+      expect(ack.ok, true, 'the answer');
+    },
+  },
+  {
+    name: 'a command the server does not know is answered too, with a reason',
+    spec: '§6.1',
+    level: 2,
+    async run(consumer) {
+      const ack = await consumer.command!('no-such-command');
+
+      expect(ack.ok, false, 'the answer');
+      if (typeof ack.reason !== 'string' || ack.reason === '') {
+        throw new Error('expected a reason to show a reader');
+      }
+    },
+  },
+  {
+    name: 'a notification is handed over under its topic, with nothing to apply',
+    spec: '§6.2',
+    level: 2,
+    async run(consumer) {
+      await consumer.command!('announce');
+      await consumer.settle();
+
+      const seen = consumer.notified!('announcements');
+      if (seen.length === 0) {
+        throw new Error('expected the notification to reach the screen');
+      }
+      expect(ids(consumer), [], 'the rows, which a notification must not touch');
     },
   },
 ];

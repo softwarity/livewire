@@ -1,4 +1,4 @@
-import { Conversation, MockServer, SCENARIOS } from '../src/index';
+import { Conversation, MockServer, scenariosFor } from '../src/index';
 import type { LiveWindow } from '@softwarity/livewire-protocol';
 import type { Wire } from '../src/conformance';
 
@@ -37,6 +37,16 @@ describe('conformance: the in-memory server', () => {
         windowFor: (): LiveWindow => ({ rows: [{ id: 'always', updatedAt: 'v1' }], total: 1 }),
       });
 
+    // What a level 2 server must expose for the suite: something to do, and
+    // something that announces.
+    server.handle('touch', () => {
+      arrivals += 1;
+      server.touched();
+    });
+    server.handle('announce', () => {
+      server.notify('announcements', { said: 'something happened' });
+    });
+
     return {
       server,
       add: () => {
@@ -68,7 +78,7 @@ describe('conformance: the in-memory server', () => {
     };
   }
 
-  for (const scenario of SCENARIOS) {
+  for (const scenario of scenariosFor(2)) {
     it(`${scenario.spec} ${scenario.name}`, async () => {
       const wire = wireOf();
       const conversation = new Conversation(wire);

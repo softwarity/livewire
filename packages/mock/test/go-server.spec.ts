@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { WebSocket } from 'ws';
-import { Conversation, SCENARIOS } from '../src/index';
+import { Conversation, scenariosFor } from '../src/index';
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 import type { Wire } from '../src/conformance';
 
@@ -76,7 +76,7 @@ function which(command: string): boolean {
     };
   }
 
-  for (const scenario of SCENARIOS) {
+  for (const scenario of scenariosFor(2)) {
     it(`${scenario.spec} ${scenario.name}`, async () => {
       const wire = wireOf();
       const conversation = new Conversation(wire);

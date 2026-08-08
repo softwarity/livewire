@@ -430,6 +430,58 @@ A `Consumer` is the whole adaptation layer. Both halves of a client are covered:
 the transport (what goes on the wire, and when) and the list (what a frame does
 to the rows).
 
+## 5b. Commands and notifications (level 2)
+
+Optional, and a screen that only reads lists needs neither. Everything in §0–§5
+stands whether or not a server implements them.
+
+**`command`** — something to do, answered exactly once.
+
+```ts
+// Angular
+this.client.command('flight.acknowledge', { id }).subscribe((ack) => {
+  if (!ack.ok) this.toast(ack.reason);
+});
+```
+
+```ts
+// NestJS - on a method, in a family, unlike @LiveTopic
+@Injectable()
+export class FlightCommands {
+  @LiveCommand('flight.acknowledge')
+  acknowledge(payload: JsonObject): Observable<void> {
+    return this.flights.acknowledge(text(payload['id']));
+  }
+}
+```
+
+```go
+// Go
+registry.Handle("flight.acknowledge", func(ctx context.Context, payload json.RawMessage) (any, error) {
+    return nil, flights.Acknowledge(ctx, idOf(payload))  // an error refuses it, with its message as the reason
+})
+```
+
+> **The answer is not the new state.** Whatever the command changed reaches the
+> screen through the subscription already watching it. Putting rows in `result`
+> is a second version of them, free to disagree with the first — the mistake the
+> whole protocol exists to avoid. Do not reach into `ack.result` for a list.
+
+**`notify`** — something happened, told once, outside any window.
+
+```ts
+this.livewire.notify('import.finished', { count });                 // NestJS
+server.Notify(ctx, "import.finished", map[string]any{"count": n})   // Go
+this.client.notifications('import.finished').subscribe(…)           // Angular
+```
+
+No id, no sequence, nothing to apply. The give-away that something is *not* a
+notification: a reader arriving late missed it, and it matters. Then it is a
+window, and it belongs in a source.
+
+`LivewireModule` is global, so `LivewireNotifier` is injectable in any feature
+module — `forRoot` runs once and there is no second chance to import it.
+
 ## 6. Rules you must not break
 
 Each one has a failure mode that is invisible until it is expensive.
@@ -523,13 +575,15 @@ sequence restarts — it reads as a gap, resyncs, and nothing publishes meanwhil
 | `text(v)` / `whole(v, fallback)` / `limitOf(v, fallback)` | Query readers, clamped |
 | `COALESCE_MS` = 300, `MAX_LIMIT` = 200 | |
 | `LivewireRegistry.register(topic, source)` | Hand registration, for tests |
+| `@LiveCommand(name)` | Marks a **method** as a command — level 2 |
+| `LivewireNotifier.notify(topic, payload?)` | Tells every socket that something happened |
 
 ### `@softwarity/livewire` (Angular)
 
 | | |
 |---|---|
 | `provideLivewire({ path, reconnectMs?, connect? })` | The one socket |
-| `LivewireClient` | `live` signal, `watch(id, topic, query)`, `resync(id)`, `retry()` |
+| `LivewireClient` | `live` signal, `watch(id, topic, query)`, `resync(id)`, `retry()`, `command(name, payload?)`, `notifications(topic)` |
 | `LiveTopic<Row>(client, topic)` | `window(query, offset, limit)`, `open(query)`, `resync()` |
 | `LiveWindowDataSource<Row>(onDrift?, window?)` | `length()` and `pivot()` are **signals**; `track`, `reset`, `ensure`, `at`, `fresh`, `changes`, `disconnect`. Built in an injection context. |
 | `LiveList<Row>` | `apply(frame)` → false on drift; `rows`, `total`, `pivot` signals |
@@ -541,7 +595,8 @@ sequence restarts — it reads as a gap, resyncs, and nothing publishes meanwhil
 | | |
 |---|---|
 | `NewRegistry(coalesce)` / `Register(topic, source)` | |
-| `NewServer(registry, Options{Authorize, Refusal, Origins, Logger})` | an `http.Handler` |
+| `NewServer(registry, Options{Authorize, Refusal, Origins, Logger})` | an `http.Handler`; `Notify(ctx, topic, payload)` on it |
+| `Registry.Handle(name, Command)` | A command — level 2 |
 | `Source` | `ReadQuery(json.RawMessage) (any, error)`, `Key(any) string`, `Wake() <-chan struct{}`, `Read(ctx, any) (Window, error)` |
 | `Row{ID, UpdatedAt, Data}` / `Window{Rows, Total *int, Pivot *int}` | |
 | `Text` / `Whole` / `LimitOf`, `CoalesceDefault`, `MaxLimit` | |
@@ -552,7 +607,9 @@ sequence restarts — it reads as a gap, resyncs, and nothing publishes meanwhil
 |---|---|
 | `new MockServer({ authorize?, refusal?, onTraffic? })` | |
 | `.register(topic, { readQuery?, windowFor })`, `.connect()`, `.touched(topic?)` | |
-| `SCENARIOS`, `Conversation`, `Wire` | The conformance suite |
+| `SCENARIOS` / `scenariosFor(level)`, `Conversation`, `Wire` | The server suite |
+| `CLIENT_SCENARIOS` / `clientScenariosFor(level)`, `Consumer` | The client suite |
+| `.handle(name, command)`, `.notify(topic, payload?)` | Level 2, in memory |
 
 ## 10. On the wire, for debugging
 
@@ -561,6 +618,14 @@ sequence restarts — it reads as a gap, resyncs, and nothing publishes meanwhil
 { "event": "subscribe",   "data": { "id": "messages:3", "topic": "messages",
                                     "query": { "search": "delay", "offset": 100, "limit": 50 } } }
 { "event": "unsubscribe", "data": { "id": "messages:3" } }
+
+// client → server, level 2
+{ "event": "command", "data": { "id": "c-17", "name": "flight.acknowledge", "payload": { … } } }
+
+// server → client, level 2
+{ "event": "ack",    "data": { "id": "c-17", "ok": true } }
+{ "event": "ack",    "data": { "id": "c-17", "ok": false, "reason": "…" } }
+{ "event": "notify", "data": { "topic": "import.finished", "payload": { … } } }
 
 // server → client — all three carry event "update"
 { "event": "update", "data": { "id": "messages:3", "type": "snapshot",

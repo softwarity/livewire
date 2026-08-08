@@ -62,6 +62,11 @@ const (
 	SubscribeEvent   = "subscribe"
 	UnsubscribeEvent = "unsubscribe"
 	UpdateEvent      = "update"
+
+	// Level 2 — SPEC §6. A server may implement neither, either or both.
+	CommandEvent = "command"
+	AckEvent     = "ack"
+	NotifyEvent  = "notify"
 )
 
 // NotAuthorised is RFC 6455 policy violation: the socket opened, the caller
@@ -109,6 +114,31 @@ type patchFrame struct {
 	Total    *int     `json:"total,omitempty"`
 	Pivot    *int     `json:"pivot,omitempty"`
 	Sequence int      `json:"sequence"`
+}
+
+// commandFrame asks for something to be done — SPEC §6.1.
+type commandFrame struct {
+	ID      string          `json:"id"`
+	Name    string          `json:"name"`
+	Payload json.RawMessage `json:"payload"`
+}
+
+// ackFrame is the one answer a command gets, whatever happened.
+//
+// Result is deliberately not the new state of anything: a list a command
+// changed is republished by its own subscription. Two answers to one question
+// is what this protocol exists to avoid.
+type ackFrame struct {
+	ID     string `json:"id"`
+	OK     bool   `json:"ok"`
+	Result any    `json:"result,omitempty"`
+	Reason string `json:"reason,omitempty"`
+}
+
+// notifyFrame is an event, not a window — SPEC §6.2. Nothing to apply.
+type notifyFrame struct {
+	Topic   string `json:"topic"`
+	Payload any    `json:"payload,omitempty"`
 }
 
 // errorFrame is sent when a subscription names a topic nothing answers.

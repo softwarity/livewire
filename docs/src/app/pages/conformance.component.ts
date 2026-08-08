@@ -70,6 +70,13 @@ interface Scenario {
 
     <p>Each names the clause it defends. A rule with no scenario is a rule that will be broken quietly.</p>
 
+    <div class="callout">
+      The last five are <strong>level 2</strong> — commands and notifications, which a server may not
+      implement at all. <code>scenariosFor(1)</code> leaves them out, <code>scenariosFor(2)</code> asks
+      for them: saying which level a fixture claims is what keeps a skipped scenario from looking like a
+      passing one.
+    </div>
+
     <table>
       <thead>
         <tr><th>Spec</th><th>Scenario</th></tr>
@@ -208,6 +215,9 @@ cd go && go test -race ./...`;
     { spec: '§6', name: 'ignores a frame carrying another subscription id' },
     { spec: '§3.3', name: 'closes with an unsubscribe naming the id it opened' },
     { spec: '§6', name: 'subscribes again by itself after the socket drops' },
+    { spec: '§6.1', name: 'a command is answered, and the answer says whether it was done — level 2' },
+    { spec: '§6.1', name: 'a command the server does not know is answered too, with a reason — level 2' },
+    { spec: '§6.2', name: 'a notification is handed over under its topic, with nothing to apply — level 2' },
   ];
 
   /**
@@ -230,5 +240,10 @@ cd go && go test -race ./...`;
     { spec: '§3.3', name: 'unsubscribing an unknown id is ignored' },
     { spec: '§3.3', name: 'unsubscribing one subscription leaves the others alone' },
     { spec: '§5', name: 'a late subscription gets a snapshot of where things are' },
+    { spec: '§6.1', name: 'answers a command with exactly one ack, carrying its id — level 2' },
+    { spec: '§6.1', name: 'answers a command it does not know with ok:false and a reason — level 2' },
+    { spec: '§6.1', name: 'a command that changes the data reaches an open window the ordinary way — level 2' },
+    { spec: '§2.1', name: 'a command with no id is ignored silently — level 2' },
+    { spec: '§6.2', name: 'a notification arrives with its topic and nothing to apply — level 2' },
   ];
 }

@@ -105,6 +105,27 @@ import { CodeComponent } from '../code/code.component';
       </tbody>
     </table>
 
+    <h3>Commands and notifications</h3>
+
+    <p>
+      Level 2, and optional. A command is marked on a <strong>method</strong>, unlike
+      <code>&#64;LiveTopic</code>: a topic is a list and there is one per class, while commands come in
+      families sharing dependencies.
+    </p>
+
+    <app-code lang="ts" [code]="commands" />
+
+    <div class="callout warn">
+      <strong>What a command changed does not go in its answer.</strong> A list it touched is republished
+      by its own subscription, on that source's schedule. Putting the new rows in <code>result</code>
+      would be a second version of them, free to disagree with the one on screen.
+    </div>
+
+    <div class="callout">
+      <code>LivewireModule</code> is global, so <code>LivewireNotifier</code> is injectable in any feature
+      module — <code>forRoot</code> runs once at the root and there is no second chance to import it.
+    </div>
+
     <h3>The one rule to remember</h3>
 
     <div class="callout warn">
@@ -179,6 +200,26 @@ protected wake() {
 // is a floor, and it is the honest way to say "this row ages".
 protected wake() {
   return onChanges(this.events.changes, 30_000);
+}`;
+
+  protected readonly commands = `@Injectable()
+export class FlightCommands {
+  constructor(
+    private readonly flights: FlightService,
+    private readonly livewire: LivewireNotifier,
+  ) {}
+
+  // Something to do, answered by exactly one ack - whatever happens. Throwing,
+  // or an observable that errors, refuses it: the message becomes the reason.
+  @LiveCommand('flight.acknowledge')
+  acknowledge(payload: JsonObject): Observable<void> {
+    return this.flights.acknowledge(text(payload['id']));
+  }
+
+  // Something that happened, told once, outside any window.
+  finished(count: number): void {
+    this.livewire.notify('import.finished', { count });
+  }
 }`;
 
   protected readonly testing = `const registry = app.get(LivewireRegistry);

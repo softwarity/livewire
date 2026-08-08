@@ -62,9 +62,19 @@ type window struct {
 //
 // Explicit registration rather than discovery: Go has no annotations, and a
 // list of what a server serves is worth reading anyway.
+// Command is something a client can ask the server to do — SPEC §6.1.
+//
+// Answer what the caller should get back, or nil. Return an error to refuse:
+// its message becomes the reason the client is given, rather than silence.
+//
+// What the command changed is not returned here. It reaches the screens through
+// whatever subscriptions were watching it, on their own schedule.
+type Command func(ctx context.Context, payload json.RawMessage) (any, error)
+
 type Registry struct {
 	mutex    sync.RWMutex
 	sources  map[string]Source
+	commands map[string]Command
 	windows  map[string]*window
 	coalesce time.Duration
 }
@@ -77,6 +87,7 @@ func NewRegistry(coalesce time.Duration) *Registry {
 	}
 	return &Registry{
 		sources:  map[string]Source{},
+		commands: map[string]Command{},
 		windows:  map[string]*window{},
 		coalesce: coalesce,
 	}
@@ -87,6 +98,25 @@ func (r *Registry) Register(topic string, source Source) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	r.sources[topic] = source
+}
+
+// Handle adds something the server can be asked to do. Registering the same
+// name twice replaces it.
+func (r *Registry) Handle(name string, command Command) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	if r.commands == nil {
+		r.commands = map[string]Command{}
+	}
+	r.commands[name] = command
+}
+
+// Command answers the handler behind a name, or nil — the caller says so on the
+// socket rather than staying quiet.
+func (r *Registry) Command(name string) Command {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+	return r.commands[name]
 }
 
 // Find answers the source behind a topic, or nil.

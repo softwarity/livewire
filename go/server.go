@@ -40,6 +40,9 @@ type Server struct {
 	registry *Registry
 	options  Options
 	logger   *slog.Logger
+
+	// Every open connection, so a notification reaches all of them — SPEC §6.2.
+	listeners sync.Map
 }
 
 func NewServer(registry *Registry, options Options) *Server {
@@ -66,12 +69,20 @@ func (s *Server) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		// The frame first, then the close - see SPEC §1. A proxy that drops
 		// the close code would otherwise leave the client with nothing to
 		// explain itself.
-		_ = writeFrame(ctx, socket, errorFrame{ID: "connection", Type: "error", Reason: reason})
+		// The frame first, then the close - SPEC §1.
+		_ = writeFrame(ctx, socket, Envelope{
+			Event: UpdateEvent,
+			Data:  mustMarshal(errorFrame{ID: "connection", Type: "error", Reason: reason}),
+		})
 		_ = socket.Close(websocket.StatusCode(NotAuthorised), "Not authorised")
 		return
 	}
 
-	newConnection(s, socket).serve(ctx)
+	connection := newConnection(s, socket)
+	// Listed while it is open, so a notification reaches it — SPEC §6.2.
+	s.listeners.Store(connection, connection)
+	defer s.listeners.Delete(connection)
+	connection.serve(ctx)
 }
 
 // connection is one socket and the subscriptions open on it.
@@ -85,6 +96,25 @@ type connection struct {
 
 	mutex         sync.Mutex
 	subscriptions map[string]context.CancelFunc
+}
+
+// Notify tells every open connection that something happened — SPEC §6.2.
+//
+// An event, not a window: nothing here is applied to a list, and a client that
+// does not know the topic ignores it. Who receives one is the server's
+// business, which here means everybody it is talking to.
+func (s *Server) Notify(ctx context.Context, topic string, payload any) {
+	frame := Envelope{Event: NotifyEvent, Data: mustMarshal(notifyFrame{Topic: topic, Payload: payload})}
+	s.listeners.Range(func(_, value any) bool {
+		connection, ok := value.(*connection)
+		if !ok {
+			return true
+		}
+		if err := connection.send(ctx, frame); err != nil {
+			s.logger.Warn("could not notify", "topic", topic, "error", err)
+		}
+		return true
+	})
 }
 
 func newConnection(server *Server, socket *websocket.Conn) *connection {
@@ -112,6 +142,8 @@ func (c *connection) serve(ctx context.Context) {
 			c.onSubscribe(ctx, envelope.Data)
 		case UnsubscribeEvent:
 			c.onUnsubscribe(envelope.Data)
+		case CommandEvent:
+			c.onCommand(ctx, envelope.Data)
 		}
 	}
 }
@@ -188,6 +220,38 @@ func (c *connection) publish(ctx context.Context, id string, windows <-chan Wind
 	}
 }
 
+// onCommand does what was asked and answers exactly one ack — SPEC §6.1.
+//
+// Whatever happens: done, refused, or a name nothing handles. A client that
+// hears nothing back cannot tell a slow write from a lost frame.
+func (c *connection) onCommand(ctx context.Context, data json.RawMessage) {
+	var frame commandFrame
+	if err := json.Unmarshal(data, &frame); err != nil || frame.ID == "" {
+		// No id, nothing to answer under — SPEC §2.1.
+		return
+	}
+
+	command := c.server.registry.Command(frame.Name)
+	if command == nil {
+		c.answer(ctx, ackFrame{ID: frame.ID, OK: false, Reason: "No command '" + frame.Name + "'"})
+		return
+	}
+
+	result, err := command(ctx, frame.Payload)
+	if err != nil {
+		c.server.logger.Warn("command refused", "name", frame.Name, "error", err)
+		c.answer(ctx, ackFrame{ID: frame.ID, OK: false, Reason: err.Error()})
+		return
+	}
+	c.answer(ctx, ackFrame{ID: frame.ID, OK: true, Result: result})
+}
+
+func (c *connection) answer(ctx context.Context, frame ackFrame) {
+	if err := c.send(ctx, Envelope{Event: AckEvent, Data: mustMarshal(frame)}); err != nil {
+		c.server.logger.Warn("could not acknowledge", "id", frame.ID, "error", err)
+	}
+}
+
 func (c *connection) onUnsubscribe(data json.RawMessage) {
 	var frame unsubscribeFrame
 	if json.Unmarshal(data, &frame) != nil || frame.ID == "" {
@@ -219,14 +283,24 @@ func (c *connection) closeAll() {
 	}
 }
 
+// write sends one update frame, in the envelope every push travels in.
 func (c *connection) write(ctx context.Context, frame any) error {
-	c.writing.Lock()
-	defer c.writing.Unlock()
-	return writeFrame(ctx, c.socket, frame)
+	return c.send(ctx, Envelope{Event: UpdateEvent, Data: mustMarshal(frame)})
 }
 
-func writeFrame(ctx context.Context, socket *websocket.Conn, frame any) error {
-	payload, err := json.Marshal(Envelope{Event: UpdateEvent, Data: mustMarshal(frame)})
+// send is the one place a frame reaches the socket, whatever its event.
+//
+// Writes are serialised here rather than by whoever calls: a subscription
+// publishing, an acknowledgement and a notification are three goroutines, and a
+// WebSocket does not take two writers at once.
+func (c *connection) send(ctx context.Context, envelope Envelope) error {
+	c.writing.Lock()
+	defer c.writing.Unlock()
+	return writeFrame(ctx, c.socket, envelope)
+}
+
+func writeFrame(ctx context.Context, socket *websocket.Conn, envelope Envelope) error {
+	payload, err := json.Marshal(envelope)
 	if err != nil {
 		return err
 	}

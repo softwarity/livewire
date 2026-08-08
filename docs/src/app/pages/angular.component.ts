@@ -82,6 +82,18 @@ import { CodeComponent } from '../code/code.component';
 
     <app-code lang="ts" [code]="labels" />
 
+    <h3>Commands and notifications</h3>
+
+    <p>Level 2, and optional: a screen that only reads lists needs neither.</p>
+
+    <app-code lang="ts" [code]="commands" />
+
+    <div class="callout warn">
+      The list does not come back in the answer. Whatever the command changed reaches the screen through
+      the subscription already watching it — so do not reach into <code>ack.result</code> for rows, read
+      them where they were already coming from.
+    </div>
+
     <h3>The live indicator</h3>
 
     <p>
@@ -182,6 +194,16 @@ provideLivewire({ path: '', connect: () => server.connect() })`;
   protected readonly labels = `// The values that actually exist, kept in step. Not a constant in the screen:
 // offering a filter for something an installation has never seen answers nothing.
 readonly stations = toSignal(liveLabels(inject(LivewireClient), 'stations'), { initialValue: [] });`;
+
+  protected readonly commands = `// Something to do. One answer, whatever happens.
+this.client.command('flight.acknowledge', { id }).subscribe((ack) => {
+  if (!ack.ok) {
+    this.toast(ack.reason);
+  }
+});
+
+// Something that happened, outside any window.
+this.client.notifications('import.finished').subscribe((payload) => this.toast(payload));`;
 
   protected readonly indicator = `<lw-live-indicator />`;
 

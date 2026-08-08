@@ -71,9 +71,54 @@ export interface UnsubscribeFrame {
   id: string;
 }
 
+/**
+ * Something to do, rather than something to read - SPEC §6.1.
+ *
+ * Answered by exactly one `AckFrame` carrying the same id, whatever happens.
+ * What the command changed reaches the screen through the subscription that was
+ * already watching it, never through the acknowledgement.
+ */
+export interface CommandFrame {
+  /** The client's handle on this command. Unique among what the socket has in flight. */
+  id: string;
+  /** What to do. The server decides what it knows. */
+  name: string;
+  /** Whatever the command takes. Opaque to the transport. */
+  payload?: JsonValue;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Server → client
 // ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The answer to a command, and the only one - SPEC §6.1.
+ *
+ * `result` is whatever the command answers with, and it is deliberately not the
+ * new state of anything: a list changed by a command is republished by its own
+ * subscription. Two answers to one question is what this protocol exists to
+ * avoid.
+ */
+export interface AckFrame {
+  id: string;
+  ok: boolean;
+  /** Present only when `ok`. Opaque to the transport. */
+  result?: JsonValue;
+  /** Present only when not `ok`, and human-readable. */
+  reason?: string;
+}
+
+/**
+ * An event, not a window - SPEC §6.2.
+ *
+ * No id, no sequence, nothing to apply. A client that does not know the topic
+ * ignores it. Anything a screen has to hold, show or reconcile is a window and
+ * belongs in a subscription.
+ */
+export interface NotifyFrame {
+  topic: string;
+  payload?: JsonValue;
+}
 
 /** First frame on a subscription: the window as it stands. */
 export interface SnapshotFrame<Row extends LiveRow = LiveRow> {
@@ -127,6 +172,15 @@ export const UNSUBSCRIBE_EVENT = 'unsubscribe';
 
 /** The event name every push carries, whatever opened the subscription. */
 export const UPDATE_EVENT = 'update';
+
+/** The event name a client sends to ask for something to be done - SPEC §6.1. */
+export const COMMAND_EVENT = 'command';
+
+/** The one answer a command gets, whatever happened. */
+export const ACK_EVENT = 'ack';
+
+/** An event the server tells a client about, outside any window - SPEC §6.2. */
+export const NOTIFY_EVENT = 'notify';
 
 /** Policy violation (RFC 6455): the socket opened, the caller may not use it. */
 export const NOT_AUTHORISED = 1008;
