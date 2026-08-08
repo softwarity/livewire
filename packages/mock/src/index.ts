@@ -33,6 +33,14 @@ export interface MockSource<Q = JsonValue> {
 export interface MockSocket {
   send(frame: string): void;
   close(code?: number, reason?: string): void;
+  /**
+   * Called once the connection is usable.
+   *
+   * A real socket has this, and a client relies on it: it is where every open
+   * subscription is (re)sent. A mock without it looks connected and answers
+   * nothing, which is the least useful failure there is.
+   */
+  onopen?: () => void;
   onmessage?: (frame: string) => void;
   onclose?: (code: number, reason: string) => void;
 }
@@ -146,6 +154,7 @@ class Client {
       return;
     }
     this.authorised = true;
+    this.socket.onopen?.();
   }
 
   private onFrame(raw: string): void {

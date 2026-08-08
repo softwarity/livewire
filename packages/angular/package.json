@@ -2,13 +2,30 @@
   "name": "@softwarity/livewire",
   "version": "0.1.0",
   "description": "Live query synchronisation for Angular: subscribe to a query over one WebSocket, get its answer and every answer after it. Virtual-scroll data source included.",
-  "keywords": ["angular", "websocket", "live-query", "realtime", "signals", "virtual-scroll", "cdk", "livewire"],
+  "keywords": [
+    "angular",
+    "websocket",
+    "live-query",
+    "realtime",
+    "signals",
+    "virtual-scroll",
+    "cdk",
+    "livewire"
+  ],
   "homepage": "https://github.com/softwarity/livewire#readme",
-  "bugs": { "url": "https://github.com/softwarity/livewire/issues" },
-  "repository": { "type": "git", "url": "git+https://github.com/softwarity/livewire.git", "directory": "packages/angular" },
+  "bugs": {
+    "url": "https://github.com/softwarity/livewire/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/softwarity/livewire.git",
+    "directory": "packages/angular"
+  },
   "license": "Apache-2.0",
-  "author": "François ACHACHE <francois.achache@gmail.com>",
-  "publishConfig": { "access": "public" },
+  "author": "Fran\u00e7ois ACHACHE <francois.achache@gmail.com>",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "rm -rf dist && ng-packagr -p ng-package.json",
     "check": "tsc -p tsconfig.spec.json --noEmit",
@@ -38,6 +55,7 @@
     "ng-packagr": "^19.0.0",
     "rxjs": "^7.8.1",
     "typescript": "~5.6.0",
-    "zone.js": "^0.15.0"
+    "zone.js": "^0.15.0",
+    "@softwarity/livewire-mock": "0.1.0"
   }
 }
