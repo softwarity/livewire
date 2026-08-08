@@ -18,10 +18,13 @@ jobs:
           node-version: '22'
       - run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
       - run: npm ci
-      - run: npm test
+      # Built before tested, and the order is not a preference: a package names
+      # its neighbour by package name, and that resolves through the workspace
+      # link to a `dist/` that does not exist until this step has run.
       - run: npm run build
-      # In dependency order: the protocol first, since the other two name it.
+      - run: npm test
+      # In dependency order: the protocol first, since every other one names it.
       - run: npm publish --workspace @softwarity/livewire-protocol
+      - run: npm publish --workspace @softwarity/livewire-mock
       - run: npm publish --workspace @softwarity/nestjs-livewire
       - run: npm publish --workspace @softwarity/livewire
-        continue-on-error: true
