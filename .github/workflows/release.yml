@@ -1,0 +1,64 @@
+name: Create Tag/Release
+run-name: ${{ github.actor }} release ${{ github.repository }}
+
+# One action, two tags. The wire contract is described in every package and in
+# the Go module, so they carry one version between them: `v1.2.3` publishes the
+# npm packages, `go/v1.2.3` is what `go get` looks for on a module in a
+# subdirectory. Posting one without the other is how a server and a client end
+# up disagreeing about the protocol they share.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump'
+        type: choice
+        required: true
+        default: patch
+        options: [patch, minor, major]
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      # Checked out with the default token; the tags below are pushed with the
+      # PAT, because a tag pushed by GITHUB_TOKEN does not trigger tag.yml.
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify NPM token is valid
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          npm whoami --registry https://registry.npmjs.org/
+      - name: Configure git identity
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+      - name: Bump every package to the same version
+        id: version
+        run: |
+          CURRENT=$(node -p "require('./package.json').version")
+          NEXT=$(node -p "
+            const [major, minor, patch] = '$CURRENT'.split('.').map(Number);
+            ({ major: [major + 1, 0, 0], minor: [major, minor + 1, 0], patch: [major, minor, patch + 1] })['${{ inputs.bump }}'].join('.')
+          ")
+          node scripts/version-all.mjs "$NEXT"
+          echo "next=$NEXT" >> "$GITHUB_OUTPUT"
+      - name: Open the next section in the release notes
+        run: |
+          NEXT="${{ steps.version.outputs.next }}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$NEXT"
+          AFTER="$MAJOR.$MINOR.$((PATCH + 1))"
+          sed -i "s/^# Release Notes$/# Release Notes\n\n## $AFTER\n\n---/" RELEASE_NOTES.md
+      - name: Commit and tag
+        run: |
+          NEXT="${{ steps.version.outputs.next }}"
+          git add -A
+          git commit -m "v$NEXT"
+          git tag "v$NEXT"
+          git tag "go/v$NEXT"
+      - name: Push commit and both tags
+        run: |
+          git push "https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:main --follow-tags

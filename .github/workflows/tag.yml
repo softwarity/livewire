@@ -1,0 +1,27 @@
+name: Publish to NPM
+run-name: ${{ github.actor }} publish ${{ github.ref_name }}
+
+# `v*` only. The Go module carries a `go/v*` tag for the same release, and
+# matching it here would run this whole workflow a second time and try to
+# publish versions npm already has.
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      # In dependency order: the protocol first, since the other two name it.
+      - run: npm publish --workspace @softwarity/livewire-protocol
+      - run: npm publish --workspace @softwarity/nestjs-livewire
+      - run: npm publish --workspace @softwarity/livewire
+        continue-on-error: true
