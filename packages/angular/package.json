@@ -1,6 +1,6 @@
 {
   "name": "@softwarity/livewire",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Live query synchronisation for Angular: subscribe to a query over one WebSocket, get its answer and every answer after it. Virtual-scroll data source included.",
   "keywords": [
     "angular",
@@ -22,7 +22,7 @@
     "directory": "packages/angular"
   },
   "license": "Apache-2.0",
-  "author": "Fran\u00e7ois ACHACHE <francois.achache@gmail.com>",
+  "author": "François ACHACHE <francois.achache@gmail.com>",
   "publishConfig": {
     "access": "public"
   },
@@ -38,7 +38,7 @@
     "rxjs": "^7.5.0"
   },
   "dependencies": {
-    "@softwarity/livewire-protocol": "0.1.0",
+    "@softwarity/livewire-protocol": "0.1.1",
     "tslib": "^2.6.2"
   },
   "devDependencies": {

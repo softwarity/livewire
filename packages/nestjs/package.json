@@ -1,6 +1,6 @@
 {
   "name": "@softwarity/nestjs-livewire",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Live query synchronisation for NestJS: subscribe to a query over one WebSocket, get its answer and every answer after it.",
   "keywords": [
     "nestjs",
@@ -22,7 +22,7 @@
     "directory": "packages/nestjs"
   },
   "license": "Apache-2.0",
-  "author": "Fran\u00e7ois ACHACHE <francois.achache@gmail.com>",
+  "author": "François ACHACHE <francois.achache@gmail.com>",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -43,7 +43,7 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "@softwarity/livewire-protocol": "0.1.0"
+    "@softwarity/livewire-protocol": "0.1.1"
   },
   "peerDependencies": {
     "@nestjs/common": ">=10.0.0 <12.0.0",
