@@ -2,6 +2,13 @@
 
 ## NEXT RELEASE
 
+### Features
+
+- **`LiveWindowDataSource` can repaint a zoneless screen on its own.** Hand it a `ChangeDetectorRef` and it calls `markForCheck()` whenever it publishes — which marks the view dirty *and* notifies the zoneless scheduler — so the template no longer has to read `revision()` for the screen to move. `revision()` stays, for a source built outside an injection context. It asks for a pass only when something changed: not on a frame it had to reject, and not when the window moves — only when its answer lands.
+- **An agent brief at the root**, [`llm-instructions.md`](./llm-instructions.md): the model, a recipe per backend and per screen, the rules that must not be broken with the failure each one prevents, a checklist, and a symptom → cause → fix table.
+- The documented screen follows its viewport through an **`effect`** rather than `ngAfterViewInit`. The query is a signal, so a viewport that appears later — a tab, a panel, anything behind an `@if` — is picked up when it appears rather than never.
+- The documentation carries the frameworks' own marks rather than emoji.
+
 ---
 
 ## 0.1.0

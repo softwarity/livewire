@@ -52,8 +52,8 @@ import { CodeComponent } from '../code/code.component';
       </thead>
       <tbody>
         <tr>
-          <td>Reading <code>revision()</code> in the template, which appears to do nothing</td>
-          <td>A zoneless application schedules nothing when a frame lands in a socket callback. The signal <em>is</em> how the repaint is asked for; without it the screen holds stale rows until something unrelated wakes Angular.</td>
+          <td>Dropping the <code>ChangeDetectorRef</code> passed to the data source, since nothing reads it</td>
+          <td>A zoneless application schedules nothing when a frame lands in a socket callback: the data is right and the screen is wrong. The data source calls <code>markForCheck()</code> with it. Without one, a <code>source.revision()</code> read in the template is the other way — one of the two is required.</td>
         </tr>
         <tr>
           <td>Sizing the window from the viewport instead of fixing it</td>
@@ -127,32 +127,54 @@ providers: [
 // A demo or a test with no backend: the same client, another connection.
 provideLivewire({ path: '', connect: () => server.connect() })`;
 
-  protected readonly screen = `export class MessagesComponent implements AfterViewInit {
+  protected readonly screen = `export class MessagesComponent implements OnDestroy {
   private readonly topic = new LiveTopic<MessageRow>(inject(LivewireClient), 'messages');
+
+  // A query the screen owns, so changing it re-subscribes on its own.
+  private readonly filters = signal<MessageFilters>({});
+
+  // \`viewChild\`, not \`viewChild.required\`: a viewport behind an \`@if\` is not
+  // there on the first pass, and the effect below simply runs again when it is.
+  private readonly viewport = viewChild(CdkVirtualScrollViewport);
 
   readonly total = signal(0);
   readonly source = new LiveWindowDataSource<MessageRow>(
-    (total) => this.total.set(total),  // the list length, as the server reports it
+    (total) => this.total.set(total),  // the list length the server reports
     () => this.topic.resync(),         // a gap in the sequence: ask again
-    100,                               // rows per window - a transport budget
+    100,                               // rows per window - see 4.4
+    inject(ChangeDetectorRef),         // what repaints a zoneless screen
   );
 
-  private readonly viewport = viewChild.required(CdkVirtualScrollViewport);
+  constructor() {
+    // A new question: a new subscription, and a snapshot to start from.
+    effect(() => {
+      const filters = this.filters();
+      this.source.reset((offset, limit) => this.topic.window(filters, offset, limit));
+    });
 
-  ngAfterViewInit(): void {
-    // Where the eye is. A table's own CollectionViewer stays silent while the
-    // CDK viewport does the scrolling, so the range is handed over explicitly.
-    this.source.track(this.viewport().renderedRangeStream);
+    // Where the eye is. An effect rather than \`ngAfterViewInit\`: the query is a
+    // signal, so a viewport that appears later - a tab, a panel, anything
+    // behind an \`@if\` - is picked up when it appears rather than never.
+    effect(() => {
+      const viewport = this.viewport();
+      if (viewport) {
+        this.source.track(viewport.renderedRangeStream);
+      }
+    });
   }
 
   search(filters: MessageFilters): void {
-    this.source.reset((offset, limit) => this.topic.window(filters, offset, limit));
+    this.filters.set(filters);
+  }
+
+  ngOnDestroy(): void {
+    this.source.disconnect();
   }
 }`;
 
   protected readonly markup = `<cdk-virtual-scroll-viewport itemSize="48" minBufferPx="480" maxBufferPx="960">
   <div *cdkVirtualFor="let row of source" class="row"
-       [class.fresh]="source.revision() && source.fresh(row?.id)">
+       [class.fresh]="source.fresh(row?.id)">
     @if (row) { {{ row.text }} } @else { <span class="placeholder"></span> }
   </div>
 </cdk-virtual-scroll-viewport>`;

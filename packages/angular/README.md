@@ -22,8 +22,9 @@ export class MessagesService {
 readonly source = new LiveWindowDataSource<MessageRow>(
   (total) => this.total.set(total),
   () => this.messages.resync(),
+  100,
+  inject(ChangeDetectorRef),   // what repaints a zoneless screen - see rule 1
 );
-readonly revision = this.source.revision;
 
 constructor() {
   effect(() => {
@@ -38,7 +39,7 @@ constructor() {
 ```
 
 ```html
-<cdk-virtual-scroll-viewport [attr.data-revision]="revision()" [itemSize]="44">
+<cdk-virtual-scroll-viewport [itemSize]="44">
   <table mat-table [dataSource]="source">…</table>
 </cdk-virtual-scroll-viewport>
 
@@ -49,11 +50,19 @@ constructor() {
 
 Each of these cost a debugging session in the application this came from.
 
-**1. Read `revision()` in the template.** A row arriving from a socket callback
-schedules no change detection at all in a zoneless application, and the screen
-holds stale rows. A signal read in the view is how a push is made to repaint.
-`ApplicationRef.tick()` is the other way, and it throws when it lands inside a
-cycle already in progress.
+**1. Say that something arrived.** A row arriving from a socket callback
+schedules no change detection at all in a zoneless application: the field is
+right and the screen is wrong. Two ways to say it, and either is enough.
+
+- **Hand the data source a `ChangeDetectorRef`** (above). It calls
+  `markForCheck()` on every publication, which marks the view dirty *and*
+  notifies the zoneless scheduler. The template then says only what it shows.
+- **Or read `revision()` in the template** — `[attr.data-revision]="source.revision()"`
+  on the viewport is enough. Use this when the source is built outside an
+  injection context, where there is no `ChangeDetectorRef` to inject.
+
+`ApplicationRef.tick()` is the third way and the wrong one: it throws when it
+lands inside a cycle already in progress.
 
 **2. The window size is a constant per screen, never derived from the
 viewport.** Deriving it loops: publish → the viewport re-measures → a new window

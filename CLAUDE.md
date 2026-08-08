@@ -87,8 +87,13 @@ Chacune a coûté une session de débogage ou une discussion déjà eue.
 - `WebSocket` natif, **jamais** `rxjs/webSocket` : celui-ci lie la connexion au
   nombre d'abonnés (neuf sockets pour une liste).
 - Un id d'abonnement **unique par fenêtre**, jamais réutilisé.
-- `revision()` **doit** être lu dans le template : en zoneless, rien ne
-  reprogramme un cycle depuis un callback socket.
+- **Il faut dire que quelque chose est arrivé** : en zoneless, rien ne
+  reprogramme un cycle depuis un callback socket. Deux moyens, au choix — passer
+  un `ChangeDetectorRef` au `LiveWindowDataSource` (il appelle `markForCheck()`,
+  qui notifie bien l'ordonnanceur zoneless), ou lire `revision()` dans le
+  template. `ApplicationRef.tick()` est le troisième et le mauvais : il jette
+  quand il tombe dans un cycle déjà en cours. `test/repaint.spec.ts` tient les
+  deux moitiés, dont le témoin négatif.
 - La taille de fenêtre est une **constante par écran**, jamais dérivée du
   viewport (boucle publier → remesurer → publier qui gèle le rendu). C'est un
   budget de transport : certains proxies coupent au-delà de ~64 kB.
