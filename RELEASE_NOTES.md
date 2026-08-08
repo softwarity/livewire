@@ -2,6 +2,10 @@
 
 ## NEXT RELEASE
 
+---
+
+## 0.2.4
+
 ### Fixes
 
 - **A subscription opened before the socket finished connecting died there.** A `WebSocket` still in `CONNECTING` *throws* on `send` rather than ignoring it, and that exception came straight back out of `watch`'s subscribe function — tearing down the very subscription being opened. On a page refresh that is every list a screen asks for before the handshake completes, and none of them came back: the client's `onopen` re-sent them, but nobody was listening any more. Frames now wait for the handshake, which was always the intent. The in-memory server could not show this on its own — its socket accepts frames at any time — so the test drives one that refuses like a real one.
