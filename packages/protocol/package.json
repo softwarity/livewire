@@ -1,6 +1,6 @@
 {
   "name": "@softwarity/livewire-protocol",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "The Livewire wire contract: frame types, the normative specification, and the diff both sides share.",
   "keywords": [
     "livewire",

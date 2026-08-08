@@ -2,6 +2,10 @@
 
 ## NEXT RELEASE
 
+---
+
+## 0.2.3
+
 ### Fixes
 
 - **`<lw-live-indicator>` is a lit dot now, and it sits where it belongs.** A disc with a soft halo of its own colour, and a flare that leaves it and fades — the state stays steady and what says "live" happens around it, instead of the dot jumping every second. The host also centres itself, so a row aligning its children to the top no longer strands it above the text beside it.
