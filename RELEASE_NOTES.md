@@ -2,14 +2,18 @@
 
 ## NEXT RELEASE
 
+### Fixes
+
+- **`<lw-live-indicator>` is a lit dot now, and it sits where it belongs.** A disc with a soft halo of its own colour, and a flare that leaves it and fades — the state stays steady and what says "live" happens around it, instead of the dot jumping every second. The host also centres itself, so a row aligning its children to the top no longer strands it above the text beside it.
+- **The component's styles were half-dropped by the browser.** They carried `//` comments, which are SCSS: in the plain CSS of an inline `styles` block that is an invalid selector, and it swallowed the rule after it — the dot had no size and no colour at all. Only visible on a real page, which is where it was found.
+
 ---
 
 ## 0.2.2
 
 ### Fixes
 
-- **`<lw-live-indicator>` is a lit dot now, and it sits where it belongs.** A disc with a soft halo of its own colour, and a flare that leaves it and fades — the state stays steady and what says "live" happens around it, instead of the dot jumping every second. The host also centres itself, so a row aligning its children to the top no longer strands it above the text beside it.
-- **The component's styles were half-dropped by the browser.** They carried `//` comments, which are SCSS: in the plain CSS of an inline `styles` block that is an invalid selector, and it swallowed the rule after it — the dot had no size and no colour at all. Only visible on a real page, which is where it was found.
+- The indicator's animation was softened. Superseded by the next release, which rebuilt it.
 
 ---
 
