@@ -141,5 +141,5 @@ export class LiveIndicatorComponent {
   }
 }
 
-const LIVE = 'Live - click to ask for the data again';
-const DOWN = 'Disconnected - reconnecting. Click to try now';
+const LIVE = 'Live data - click to ask for it again';
+const DOWN = 'No live data - reconnecting. Click to try now';
