@@ -246,9 +246,9 @@ class Client {
   }
 }
 
-export { Conversation, SCENARIOS } from './conformance';
-export type { Scenario, Wire } from './conformance';
+export { Conversation, SCENARIOS } from './conformance.js';
+export type { Scenario, Wire } from './conformance.js';
 
 // The other direction: what a *client* must do with what it is sent.
-export { CLIENT_SCENARIOS } from './client-conformance';
-export type { ClientScenario, Consumer } from './client-conformance';
+export { CLIENT_SCENARIOS } from './client-conformance.js';
+export type { ClientScenario, Consumer } from './client-conformance.js';

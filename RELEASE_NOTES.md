@@ -4,6 +4,8 @@
 
 ### Features
 
+- **`@softwarity/livewire-protocol` and `-mock` ship for `import` as well as `require`.** They were CommonJS only, which every bundler consuming them reports as an optimization bailout — it cannot see through `require` to know what is unused, so the whole package lands in the bundle. Nest stays on the `require` branch, browsers and bundlers take the `import` one, and the warning is gone from the doc site's build.
+
 - **A conformance suite for clients**, `CLIENT_SCENARIOS`, beside the one for servers. Eleven scenarios that feed frames in and read what the screen would show and what the client sent back — the transport and the list, both halves. The asymmetry was expensive: two defects shipped in 0.2.x because thirty-two tests all pointed at servers. Driving it needs a `Consumer` — open, close, deliver, drop, settle, and what the list holds — which is what turns "we also have a React client" into a test run.
 
 ### Breaking

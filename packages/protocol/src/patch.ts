@@ -1,4 +1,4 @@
-import type { LiveRow, LiveWindow, PatchFrame, SnapshotFrame } from './index';
+import type { LiveRow, LiveWindow, PatchFrame, SnapshotFrame } from './index.js';
 
 /**
  * The first frame on a subscription: the window as it stands.

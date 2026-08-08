@@ -19,9 +19,9 @@
     "directory": "packages/mock"
   },
   "license": "Apache-2.0",
-  "author": "François ACHACHE <francois.achache@gmail.com>",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "author": "Fran\u00e7ois ACHACHE <francois.achache@gmail.com>",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
   "files": [
     "dist",
     "README.md",
@@ -31,7 +31,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "build": "node ../../scripts/build-dual.mjs packages/mock",
     "check": "tsc -p tsconfig.json --noEmit",
     "test": "jest"
   },
@@ -49,5 +49,14 @@
     "typescript": "^5.6.0",
     "ws": "^8.18.0",
     "@types/ws": "^8.5.13"
+  },
+  "module": "dist/esm/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/cjs/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    },
+    "./package.json": "./package.json"
   }
 }

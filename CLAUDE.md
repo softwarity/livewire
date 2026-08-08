@@ -136,6 +136,11 @@ Chacune a coûté une session de débogage ou une discussion déjà eue.
 - **Une seule version pour tous les paquets**, et **une seule action de release
   qui pose deux tags** (`vX.Y.Z` + `go/vX.Y.Z`). Go n'a pas de registre : le tag
   *est* la publication.
+- **`protocol` et `mock` sont publiés en double format** (`dist/cjs` + `dist/esm`,
+  carte `exports`), construits par `scripts/build-dual.mjs`. Deux conséquences à
+  ne pas défaire : un import relatif porte son extension (`./patch.js`), sinon
+  Node refuse la branche ESM ; et les configurations jest ont un
+  `moduleNameMapper` qui la retire, puisque jest lit le TypeScript.
 - `tag.yml` ne réagit qu'à `v*` — surtout pas `*`, sinon le tag Go republie tout.
 - **Le paquet Angular se publie depuis `packages/angular/dist`**, pas depuis la
   racine du workspace : ng-packagr écrit le vrai manifeste (FESM, typings, carte
