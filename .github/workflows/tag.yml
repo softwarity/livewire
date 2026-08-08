@@ -24,7 +24,13 @@ jobs:
       - run: npm run build
       - run: npm test
       # In dependency order: the protocol first, since every other one names it.
+      #
+      # The first three carry `main`/`types` pointing into their own `dist`, so
+      # the workspace root is the package. The Angular one does not: ng-packagr
+      # writes the real manifest - the FESM bundle, the typings, the exports map
+      # - into `dist`, and that directory *is* the package. Publishing the
+      # workspace root there ships the sources and nothing that resolves.
       - run: npm publish --workspace @softwarity/livewire-protocol
       - run: npm publish --workspace @softwarity/livewire-mock
       - run: npm publish --workspace @softwarity/nestjs-livewire
-      - run: npm publish --workspace @softwarity/livewire
+      - run: npm publish ./packages/angular/dist

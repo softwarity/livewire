@@ -128,6 +128,12 @@ Chacune a coûté une session de débogage ou une discussion déjà eue.
   qui pose deux tags** (`vX.Y.Z` + `go/vX.Y.Z`). Go n'a pas de registre : le tag
   *est* la publication.
 - `tag.yml` ne réagit qu'à `v*` — surtout pas `*`, sinon le tag Go republie tout.
+- **Le paquet Angular se publie depuis `packages/angular/dist`**, pas depuis la
+  racine du workspace : ng-packagr écrit le vrai manifeste (FESM, typings, carte
+  d'exports) dans `dist`, et c'est ce dossier qui *est* le paquet. Publié par
+  `--workspace`, il embarque les sources et rien qui se résolve — les 0.1.0,
+  0.1.1 et 0.2.0 en ont fait les frais, et rien ne le voyait parce que le site
+  de doc consomme déjà `dist`.
 - **RELEASE_NOTES.md** : n'écrire que dans la section du haut (celle que
   `release.yml` n'a pas encore refermée). Ne jamais toucher la ligne d'en-tête.
 - **La conformité passe avant toute nouvelle implémentation**, pas après.
