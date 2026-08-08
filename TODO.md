@@ -33,15 +33,21 @@ réaliste (trois jours). Élargir se paie sur ces trois lignes à la fois.
 
 ## État
 
-| | |
-|---|---|
-| ✅ | `packages/protocol` — types + **SPEC.md normative** |
-| ⬜ | `packages/nestjs` — implémentation serveur |
-| ⬜ | `packages/angular` — implémentation client |
-| ⬜ | suite de conformité |
-| ⬜ | doc GitHub Pages, CI, publication |
-| ⬜ | niveau 2 : commandes et notifications |
-| ⬜ | implémentation Go |
+| | | tests |
+|---|---|---|
+| ✅ | `packages/protocol` — types + **SPEC.md normative** | 15 |
+| ✅ | `packages/mock` — serveur en mémoire + **scénarios de conformité** | 28 |
+| ✅ | `packages/nestjs` — implémentation serveur | 49 |
+| ✅ | `packages/angular` — implémentation client | 23 |
+| ✅ | `go/` — implémentation Go | 32, sous `-race` |
+| ✅ | suite de conformité — 12 scénarios × 3 serveurs | |
+| ✅ | doc GitHub Pages, avec démo pilotée par le serveur en mémoire | |
+| ✅ | CI : `unit-tests`, `release` (deux tags), `tag`, `deploy-doc` | |
+| ⬜ | **publication** — rien n'est encore sur npm, aucun tag posé | |
+| ⬜ | niveau 2 : commandes et notifications | |
+
+Les douze scénarios passent sur les trois serveurs. Ce qui reste avant une
+`0.1.0` publiable est au §4.
 
 ---
 
@@ -136,10 +142,26 @@ version que personne ne peut installer sans risque. `scripts/version-all.mjs`
 propage le numéro et les dépendances croisées, et la CI doit refuser de publier
 si les trois ne concordent pas.
 
-La démo GitHub Pages a une difficulté propre : elle a besoin d'un serveur. Deux
-pistes — un serveur de démonstration hébergé, ou un faux serveur en mémoire dans
-la page qui rejoue le protocole. La seconde est plus fiable et montre mieux le
-mécanisme.
+La démo GitHub Pages a une difficulté propre : elle a besoin d'un serveur.
+Tranché en faveur du **faux serveur en mémoire dans la page** — un hébergement
+gratuit s'endort au bout de quelques minutes, et GitHub Pages étant en `https`
+il faudrait de toute façon un `wss` valide. Le faux serveur est
+`packages/mock`, et il est **dans le jeu de tests** : les mêmes douze scénarios
+de conformité tournent contre lui. Une démo qui ment est pire que pas de démo ;
+c'est la suite qui dit laquelle on a.
+
+`docs/tsconfig.json` mappe `@softwarity/livewire*` sur les **sources** des
+paquets, pas sur une version publiée : une divergence casse le build de la doc
+au lieu de laisser en ligne une page qui démontre le comportement du mois
+dernier. Corollaire à ne pas défaire : les `paths` épinglent aussi `@angular/*`
+sur `docs/node_modules`, sinon les sources de la lib se compilent avec l'Angular
+du site et se *bundlent* avec celui du workspace (v19), ce qui produit des
+appels à des instructions que le runtime chargé n'exporte pas.
+
+**Ce qui reste avant de publier** : décider du numéro (`0.1.0`), lancer
+`release.yml` (il pose `v0.1.0` **et** `go/v0.1.0`), vérifier que `NPM_TOKEN` et
+`PAT_TOKEN` sont en place, et activer GitHub Pages sur le dépôt (source :
+GitHub Actions).
 
 ## 5. Niveau 2 — commandes et notifications
 

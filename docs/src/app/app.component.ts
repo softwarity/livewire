@@ -18,11 +18,11 @@ interface DocLink {
 export class AppComponent {
   protected readonly links: DocLink[] = [
     { path: '/', label: 'Getting started', icon: 'rocket_launch' },
-    { path: '/configuration', label: 'Configuration', icon: 'settings' },
-    { path: '/securing-endpoints', label: 'Securing endpoints', icon: 'lock' },
-    { path: '/ownership', label: 'Resource ownership', icon: 'verified_user' },
-    { path: '/boolean-specs', label: 'Boolean specifications', icon: 'rule' },
-    { path: '/parameter-decorators', label: 'Parameter decorators', icon: 'tune' },
-    { path: '/info-providers', label: 'Principal providers', icon: 'badge' },
+    { path: '/demo', label: 'Live demo', icon: 'bolt' },
+    { path: '/protocol', label: 'The protocol', icon: 'swap_horiz' },
+    { path: '/nestjs', label: 'NestJS server', icon: 'dns' },
+    { path: '/go', label: 'Go server', icon: 'terminal' },
+    { path: '/angular', label: 'Angular client', icon: 'web' },
+    { path: '/conformance', label: 'Conformance', icon: 'fact_check' },
   ];
 }

@@ -56,8 +56,11 @@ operation, and the sort order stays in the database where it was written.
 | [`@softwarity/livewire-protocol`](./packages/protocol) | the wire contract, and the [normative spec](./packages/protocol/SPEC.md) |
 | [`@softwarity/nestjs-livewire`](./packages/nestjs) | server implementation for NestJS |
 | [`@softwarity/livewire`](./packages/angular) | client implementation for Angular |
+| [`@softwarity/livewire-mock`](./packages/mock) | an in-memory server, and the [conformance scenarios](./packages/mock/src/conformance.ts) every server passes |
+| [`github.com/softwarity/livewire/go`](./go) | server implementation for Go |
 
-A Go server implementation is planned — see [TODO.md](./TODO.md).
+Everything npm ships carries one version; the Go module is tagged `go/vX.Y.Z`
+in the same release.
 
 ## What it is not
 
@@ -68,8 +71,15 @@ A Go server implementation is planned — see [TODO.md](./TODO.md).
 - **Not a generic pub/sub.** One client frame opens a subscription, one closes
   it. That is the whole vocabulary.
 
+## Documentation
+
+**[softwarity.github.io/livewire](https://softwarity.github.io/livewire/)** —
+including a live demo: the real Angular client against a Livewire server running
+in the page, with every frame shown both ways.
+
 ## Status
 
-Extracted from a service in production. The protocol is specified and frozen
-enough to implement against; the packages are being assembled. See
-[TODO.md](./TODO.md) for what is done, what is next, and why in that order.
+Extracted from a service in production. The protocol is specified, and three
+server implementations pass the same twelve conformance scenarios — in-memory,
+NestJS and Go. Nothing is published yet. See [TODO.md](./TODO.md) for what is
+done, what is next, and why in that order.

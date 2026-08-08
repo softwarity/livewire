@@ -7,28 +7,28 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/getting-started.component').then((m) => m.GettingStartedComponent),
   },
   {
-    path: 'configuration',
-    loadComponent: () => import('./pages/configuration.component').then((m) => m.ConfigurationComponent),
+    path: 'demo',
+    loadComponent: () => import('./pages/demo.component').then((m) => m.DemoComponent),
   },
   {
-    path: 'securing-endpoints',
-    loadComponent: () => import('./pages/securing-endpoints.component').then((m) => m.SecuringEndpointsComponent),
+    path: 'protocol',
+    loadComponent: () => import('./pages/protocol.component').then((m) => m.ProtocolComponent),
   },
   {
-    path: 'ownership',
-    loadComponent: () => import('./pages/ownership.component').then((m) => m.OwnershipComponent),
+    path: 'nestjs',
+    loadComponent: () => import('./pages/nestjs.component').then((m) => m.NestjsComponent),
   },
   {
-    path: 'boolean-specs',
-    loadComponent: () => import('./pages/boolean-specs.component').then((m) => m.BooleanSpecsComponent),
+    path: 'go',
+    loadComponent: () => import('./pages/go.component').then((m) => m.GoComponent),
   },
   {
-    path: 'parameter-decorators',
-    loadComponent: () => import('./pages/parameter-decorators.component').then((m) => m.ParameterDecoratorsComponent),
+    path: 'angular',
+    loadComponent: () => import('./pages/angular.component').then((m) => m.AngularComponent),
   },
   {
-    path: 'info-providers',
-    loadComponent: () => import('./pages/info-providers.component').then((m) => m.PrincipalProvidersComponent),
+    path: 'conformance',
+    loadComponent: () => import('./pages/conformance.component').then((m) => m.ConformanceComponent),
   },
   { path: '**', redirectTo: '' },
 ];

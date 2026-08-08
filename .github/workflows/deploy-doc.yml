@@ -1,0 +1,59 @@
+name: Deploy Doc to GitHub Pages
+run-name: ${{ github.actor }} deploy doc on ${{ github.repository }}
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Install doc-site deps
+        working-directory: docs
+        run: npm ci
+
+      # The demo compiles the library from source - see docs/tsconfig.json. A
+      # divergence between what is documented and what is published therefore
+      # breaks this build rather than shipping a page that demonstrates last
+      # month's behaviour.
+      - name: Build doc-site for GitHub Pages
+        working-directory: docs
+        run: npm run build -- --base-href /livewire/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './docs/dist/doc-site/browser'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

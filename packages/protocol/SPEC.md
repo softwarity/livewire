@@ -168,9 +168,10 @@ The key is the source's business; the transport does not compute it.
 
 ## 7. Conformance
 
-`packages/protocol/conformance/` holds the scenarios every server implementation
-must pass. They are driven over a real socket, so they apply equally to the
-NestJS and Go implementations.
+`packages/mock/src/conformance.ts` holds the scenarios every server
+implementation must pass. They are driven over an abstract wire, so the same
+list runs against the in-memory server, the NestJS one and the Go one — the last
+two over a real socket.
 
 Two implementations of one protocol diverge within months — not through
 carelessness, but through the cases nobody wrote down. The suite is what makes

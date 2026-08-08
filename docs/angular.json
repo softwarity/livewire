@@ -25,7 +25,8 @@
               "prismjs",
               "prismjs/components/prism-typescript",
               "prismjs/components/prism-bash",
-              "prismjs/components/prism-json"
+              "prismjs/components/prism-json",
+              "prismjs/components/prism-go"
             ]
           },
           "configurations": {
