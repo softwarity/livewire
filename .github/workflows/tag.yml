@@ -1,6 +1,11 @@
-name: Publish to NPM
+name: Publish to NPM and Maven Central
 run-name: ${{ github.actor }} publish ${{ github.ref_name }}
 
+# One job, so one release publishes everything or stops at the first refusal.
+# Maven Central goes first: it is the registry that validates what it is given
+# (signatures, javadoc, pom metadata) and can say no, and npm cannot take a
+# version back once it has it.
+#
 # `v*` only. The Go module carries a `go/v*` tag for the same release, and
 # matching it here would run this whole workflow a second time and try to
 # publish versions npm already has.
@@ -16,6 +21,18 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
+      # The Portal user token goes into a <server id="central">, the key into the
+      # runner's keyring; the gpg plugin reads the passphrase from MAVEN_GPG_PASSPHRASE.
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          server-id: central
+          server-username: MAVEN_CENTRAL_USERNAME
+          server-password: MAVEN_CENTRAL_TOKEN
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
       - run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
       - run: npm ci
       # Built before tested, and the order is not a preference: a package names
@@ -23,7 +40,16 @@ jobs:
       # link to a `dist/` that does not exist until this step has run.
       - run: npm run build
       - run: npm test
-      # In dependency order: the protocol first, since every other one names it.
+      # The parent pom and quarkus-livewire, signed, with sources and javadoc; the
+      # conformance fixture is excluded in the pom. Waits for the Portal's validation.
+      - name: Publish the Quarkus server to Maven Central
+        working-directory: quarkus
+        run: ./mvnw -B -Prelease deploy
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_TOKEN: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+      # npm, in dependency order: the protocol first, since every other one names it.
       #
       # The first three carry `main`/`types` pointing into their own `dist`, so
       # the workspace root is the package. The Angular one does not: ng-packagr

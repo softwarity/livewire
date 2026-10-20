@@ -16,6 +16,28 @@
     <version>0.4.0</version>
     <packaging>pom</packaging>
     <name>Livewire for Quarkus (parent)</name>
+    <description>The parent of the Livewire server for Quarkus.</description>
+    <url>https://github.com/softwarity/livewire</url>
+
+    <!-- What Maven Central asks of every pom it publishes; inherited by the modules. -->
+    <licenses>
+        <license>
+            <name>Apache-2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <id>hhfrancois</id>
+            <name>Francois Achache</name>
+            <email>francois.achache@softwarity.io</email>
+        </developer>
+    </developers>
+    <scm>
+        <connection>scm:git:https://github.com/softwarity/livewire.git</connection>
+        <developerConnection>scm:git:https://github.com/softwarity/livewire.git</developerConnection>
+        <url>https://github.com/softwarity/livewire</url>
+    </scm>
 
     <modules>
         <module>runtime</module>
@@ -27,6 +49,10 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <quarkus.platform.version>3.40.1</quarkus.platform.version>
         <surefire-plugin.version>3.5.6</surefire-plugin.version>
+        <source-plugin.version>3.3.1</source-plugin.version>
+        <javadoc-plugin.version>3.12.0</javadoc-plugin.version>
+        <gpg-plugin.version>3.2.8</gpg-plugin.version>
+        <central-plugin.version>0.12.0</central-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -61,4 +87,88 @@
             </plugins>
         </pluginManagement>
     </build>
+
+    <!--
+      Publication to Maven Central, through the Central Portal (OSSRH is gone). Only on a
+      release - .github/workflows/tag.yml runs `./mvnw -Prelease deploy` - so a plain
+      `verify` needs neither a key nor a token.
+
+      The bundle is uploaded and validated, then published without waiting for the
+      artifacts to reach the mirrors: what can refuse it (a missing signature, a missing
+      javadoc, a pom without a licence) is refused at validation, which this waits for.
+    -->
+    <profiles>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>${source-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>${javadoc-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <!-- The comments are written for a reader, not for doclint. -->
+                            <doclint>none</doclint>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>${gpg-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <!-- The passphrase comes from MAVEN_GPG_PASSPHRASE, never from a prompt. -->
+                            <gpgArguments>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                            </gpgArguments>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central-plugin.version}</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <!-- The <server> setup-java writes, from the Portal user token. -->
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>true</autoPublish>
+                            <waitUntil>validated</waitUntil>
+                            <deploymentName>livewire ${project.version}</deploymentName>
+                            <!-- The fixture the conformance suite drives is never published. -->
+                            <excludeArtifacts>
+                                <artifact>quarkus-livewire-conformance</artifact>
+                            </excludeArtifacts>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

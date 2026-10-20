@@ -13,14 +13,6 @@
     <name>Livewire for Quarkus</name>
     <description>Live query synchronisation for Quarkus: a client subscribes to a query over one WebSocket and
         receives its answer, then every answer after it.</description>
-    <url>https://github.com/softwarity/livewire</url>
-
-    <licenses>
-        <license>
-            <name>Apache-2.0</name>
-            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
-        </license>
-    </licenses>
 
     <!--
       A plain library, not an extension: what it needs is a route on the application's

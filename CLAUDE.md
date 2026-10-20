@@ -40,13 +40,22 @@ Les deux défauts de la 0.2.x (envoi sur socket `CONNECTING`, styles avalés) so
 passés à travers 32 tests parce que rien ne mettait le client à l'épreuve.
 
 CI : `unit-tests.yml` (job TypeScript, avec un JDK pour la conformité Quarkus, + job Go + job Quarkus), `release.yml` (bump commun,
-pose `vX.Y.Z` **et** `go/vX.Y.Z`, pousse avec `PAT_TOKEN`), `tag.yml` (publie sur
-npm dans l'ordre protocol → mock → nestjs → angular, après le build), `deploy-doc.yml`.
+pose `vX.Y.Z` **et** `go/vX.Y.Z`, pousse avec `PAT_TOKEN` ; vérifie d'abord le token
+npm, le token Central et la clé GPG ; stage aussi les poms), `tag.yml` (un seul job :
+build, tests, puis `./mvnw -Prelease deploy` vers Maven Central — attend la validation
+du Portal —, puis npm dans l'ordre protocol → mock → nestjs → angular), `deploy-doc.yml`.
+
+Maven Central passe par le **Central Portal** (`central-publishing-maven-plugin`,
+profil `release` du pom parent : sources, javadoc, signature GPG ; la fixture est
+exclue du bundle). OSSRH n'existe plus. Secrets : `MAVEN_CENTRAL_USERNAME` /
+`MAVEN_CENTRAL_TOKEN` (user token du Portal), `GPG_PRIVATE_KEY`, `GPG_PASSPHRASE`.
+Vérifier le bundle sans rien envoyer : `./mvnw -Prelease -Dgpg.skip -DskipUpload=true
+deploy` (un `<server id="central">` factice suffit) → `target/central-publishing/central-bundle.zip`.
 
 **Il reste** : rien de prévu. Le niveau 2 (commandes et notifications) est fait
 et conforme sur les quatre serveurs et sur le client. **Publication du jar
-Quarkus** : pas encore câblée dans `release.yml`/`tag.yml` (Maven Central ou
-GitHub Packages, à trancher).
+Quarkus** : câblée (Maven Central), pas encore éprouvée — la première release
+dira si les secrets et la clé sont bons.
 
 ## 3. Carte du dépôt
 

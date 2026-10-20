@@ -134,7 +134,8 @@ version change, trame illisible, `unsubscribe` inconnu.
 
 Sur le modèle de `softwarity/nestjs-granted` : `docs/` est une application
 Angular publiée sur GitHub Pages, `release.yml` bump et pose le tag avec le PAT,
-`tag.yml` publie sur npm.
+`tag.yml` publie sur Maven Central (le serveur Quarkus) puis sur npm, dans un
+seul job : une release publie tout ou s'arrête au premier refus.
 
 **Ce qui diffère ici** : trois paquets versionnés **ensemble**. Le contrat est
 décrit des deux côtés ; une version où les deux ne s'accordent pas est une

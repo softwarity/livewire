@@ -1,10 +1,10 @@
 name: Create Tag/Release
 run-name: ${{ github.actor }} release ${{ github.repository }}
 
-# One run, two tags. The wire contract is described in every package and in the
-# Go module, so they carry one version between them: `v1.2.3` publishes the npm
-# packages, `go/v1.2.3` is what `go get` looks for on a module in a
-# subdirectory. Posting one without the other is how a server and a client end
+# One run, two tags. The wire contract is described in every package, in the Go
+# module and in the Quarkus server, so they carry one version between them:
+# `v1.2.3` publishes the npm packages and the Maven artifact (tag.yml), `go/v1.2.3`
+# is what `go get` looks for on a module in a subdirectory. Posting one without the other is how a server and a client end
 # up disagreeing about the protocol they share.
 #
 # The bump, the notes and the GitHub Release are `softwarity/release-flow`'s
@@ -38,6 +38,12 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      # The conformance suite drives the Quarkus fixture too: a JDK, or it skips itself.
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
 
       # Checked before anything is tagged: a token that expired turns a release
       # into a tag nobody can publish, and the tag is the hard part to undo.
@@ -45,6 +51,22 @@ jobs:
         run: |
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
           npm whoami --registry https://registry.npmjs.org/
+
+      # Same reason, for Maven Central: the Portal user token, then the signing key.
+      # The query names a version that does not exist - all it has to do is not
+      # answer 401.
+      - name: Verify the Maven Central token and the signing key still work
+        env:
+          CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          CENTRAL_TOKEN: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          curl -sSf -o /dev/null \
+            -H "Authorization: Bearer $(printf '%s:%s' "$CENTRAL_USERNAME" "$CENTRAL_TOKEN" | base64 -w0)" \
+            "https://central.sonatype.com/api/v1/publisher/published?namespace=io.softwarity&name=quarkus-livewire&version=0.0.0"
+          printf '%s' "$GPG_PRIVATE_KEY" | gpg --batch --import
+          echo check | gpg --batch --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --clearsign > /dev/null
 
       - run: npm ci
 
@@ -73,7 +95,7 @@ jobs:
       - name: Stage the version, and the lockfiles that record it
         run: |
           npm install --package-lock-only --ignore-scripts --prefix docs
-          git add packages/*/package.json package-lock.json docs/package-lock.json
+          git add packages/*/package.json package-lock.json docs/package-lock.json quarkus/pom.xml quarkus/*/pom.xml
 
       - id: release
         uses: softwarity/release-flow@v1
