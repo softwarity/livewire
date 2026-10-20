@@ -17,8 +17,10 @@
 Livewire keeps a screen in step with what a database holds, over one WebSocket,
 without asking the browser to maintain the list itself.
 
+The server says what a list is — in NestJS, Go or Quarkus, the same four answers:
+
 ```ts
-// server: what this list is
+// NestJS
 @LiveTopic('messages')
 export class MessagesSource extends WindowedSource<MessageQuery> {
   readQuery(raw) { … }                    // the trust boundary
@@ -27,6 +29,31 @@ export class MessagesSource extends WindowedSource<MessageQuery> {
   protected read(q) { … }                 // the window as it stands
 }
 ```
+
+```go
+// Go
+func (s *MessagesSource) ReadQuery(raw json.RawMessage) (any, error)              { … } // the trust boundary
+func (s *MessagesSource) Wake() <-chan struct{}                                  { … } // what makes it read again
+func (s *MessagesSource) Key(q any) string                                       { … } // what two identical questions share
+func (s *MessagesSource) Read(ctx context.Context, q any) (livewire.Window, error) { … } // the window as it stands
+
+registry.Register("messages", &MessagesSource{db: db})
+mux.Handle("/ws", livewire.NewServer(registry, livewire.Options{}))
+```
+
+```java
+// Quarkus
+@LiveTopic("messages")
+@ApplicationScoped
+public class MessagesSource implements Source<MessageQuery> {
+    public MessageQuery readQuery(JsonNode raw) { … }   // the trust boundary
+    public Multi<?> wake() { … }                        // what makes it read again
+    public String key(MessageQuery q) { … }             // what two identical questions share
+    public Window read(MessageQuery q) { … }            // the window as it stands, on a worker
+}
+```
+
+The client says what a screen shows:
 
 ```ts
 // client: what this screen shows
@@ -83,5 +110,6 @@ in the page, with every frame shown both ways.
 
 Extracted from a service in production. The protocol is specified, and four
 server implementations pass the same seventeen conformance scenarios — in-memory,
-NestJS, Go and Quarkus. Nothing is published yet. See [TODO.md](./TODO.md) for what is
+NestJS, Go and Quarkus. The npm packages and the Go module are published; the
+Quarkus library goes to Maven Central with the next release. See [TODO.md](./TODO.md) for what is
 done, what is next, and why in that order.

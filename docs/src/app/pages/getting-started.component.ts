@@ -1,14 +1,20 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTabsModule } from '@angular/material/tabs';
 import { BrandComponent } from '../brand/brand.component';
 import { CodeComponent } from '../code/code.component';
 
 @Component({
   selector: 'app-getting-started',
-  imports: [CodeComponent, RouterLink, MatIconModule, BrandComponent],
+  imports: [CodeComponent, RouterLink, MatIconModule, MatTabsModule, BrandComponent],
   styles: [
     `
+      .tab-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
       .features {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -126,15 +132,44 @@ import { CodeComponent } from '../code/code.component';
 
     <p>
       A source answers one question: <em>what does this window hold, right now</em>. It never computes
-      a delta — that is the server's business, and it is done per subscriber.
+      a delta — that is the server's business, and it is done per subscriber. The same four answers,
+      whichever server you run: what a question is, what two identical questions share, what makes the
+      list read again, and the window as it stands.
     </p>
 
-    <app-code lang="ts" [code]="source" />
-
-    <p>
-      Register it as a provider in its own module. There is nothing central to edit — the registry
-      finds it by its decorator.
-    </p>
+    <mat-tab-group animationDuration="0ms" mat-stretch-tabs="false">
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <span class="tab-label"><app-brand brand="nestjs" /> NestJS</span>
+        </ng-template>
+        <app-code lang="ts" [code]="source" />
+        <p>
+          Register it as a provider in its own module. There is nothing central to edit — the registry
+          finds it by its decorator. <a routerLink="/nestjs">The NestJS server</a>.
+        </p>
+      </mat-tab>
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <span class="tab-label"><app-brand brand="go" /> Go</span>
+        </ng-template>
+        <app-code lang="go" [code]="sourceGo" />
+        <p>
+          Registration is explicit, and the server is one <code>http.Handler</code> mounted wherever the
+          application wants it. <a routerLink="/go">The Go server</a>.
+        </p>
+      </mat-tab>
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <span class="tab-label"><app-brand brand="quarkus" /> Quarkus</span>
+        </ng-template>
+        <app-code lang="java" [code]="sourceQuarkus" />
+        <p>
+          A CDI bean, found by its annotation; <code>read</code> runs on a worker, so Panache or JDBC is
+          fine there. The socket opens at <code>livewire.path</code>.
+          <a routerLink="/quarkus">The Quarkus server</a>.
+        </p>
+      </mat-tab>
+    </mat-tab-group>
 
     <h3>The client: what this screen shows</h3>
 
@@ -226,6 +261,61 @@ export class MessagesSource extends PagedSource<MessageFilters> {
   protected wake() {
     return onChanges(this.events.changes);
   }
+}`;
+
+  protected readonly sourceGo = `type MessagesSource struct {
+    db      *sql.DB
+    changes chan struct{}
+}
+
+// The trust boundary: what arrives is JSON off a socket.
+func (s *MessagesSource) ReadQuery(raw json.RawMessage) (any, error) {
+    asked := map[string]any{}
+    _ = json.Unmarshal(raw, &asked)
+    return query{search: livewire.Text(asked, "search"),
+        offset: livewire.Whole(asked, "offset", 0), limit: livewire.LimitOf(asked, "limit", 50)}, nil
+}
+
+// What two identical questions share, so they share one read.
+func (s *MessagesSource) Key(q any) string { return fmt.Sprint(q) }
+
+// What makes it read again.
+func (s *MessagesSource) Wake() <-chan struct{} { return s.changes }
+
+// The window as it stands. Whole, never a delta.
+func (s *MessagesSource) Read(ctx context.Context, q any) (livewire.Window, error) {
+    rows, total, err := s.page(ctx, q.(query))
+    return livewire.Window{Rows: rows, Total: &total}, err
+}
+
+registry := livewire.NewRegistry(0)
+registry.Register("messages", &MessagesSource{db: db, changes: changes})
+mux.Handle("/ws", livewire.NewServer(registry, livewire.Options{}))`;
+
+  protected readonly sourceQuarkus = `@LiveTopic("messages")
+@ApplicationScoped
+public class MessagesSource implements Source<MessageQuery> {
+
+    // The trust boundary: what arrives is JSON off a socket.
+    public MessageQuery readQuery(JsonNode raw) {
+        return new MessageQuery(Queries.text(raw, "search"), Queries.whole(raw, "offset", 0),
+                Queries.limitOf(raw, "limit", 50));
+    }
+
+    // What two identical questions share, so they share one read.
+    public String key(MessageQuery q) {
+        return q.search() + "|" + q.offset() + "|" + q.limit();
+    }
+
+    // What makes it read again.
+    public Multi<?> wake() {
+        return events.changes();
+    }
+
+    // The window as it stands. Whole, never a delta - on a worker, it may block.
+    public Window read(MessageQuery q) {
+        return Window.page(messages.window(q), messages.count(q));
+    }
 }`;
 
   protected readonly provide = `// app.config.ts
