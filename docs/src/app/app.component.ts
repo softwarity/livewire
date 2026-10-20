@@ -27,6 +27,7 @@ export class AppComponent {
     { path: '/protocol', label: 'The protocol', icon: 'swap_horiz' },
     { path: '/nestjs', label: 'NestJS server', brand: 'nestjs' },
     { path: '/go', label: 'Go server', brand: 'go' },
+    { path: '/quarkus', label: 'Quarkus server', brand: 'quarkus' },
     { path: '/angular', label: 'Angular client', brand: 'angular' },
     { path: '/conformance', label: 'Conformance', icon: 'fact_check' },
   ];

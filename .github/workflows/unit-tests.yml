@@ -16,6 +16,12 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
+      # The conformance suite drives the Quarkus fixture too: a JDK, or it skips itself.
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
       - run: npm ci
       - run: npm run build
       - run: npm run check
@@ -37,3 +43,18 @@ jobs:
           cache-dependency-path: go/go.sum
       - run: go vet ./...
       - run: go test -race ./...
+
+  quarkus:
+    name: Quarkus
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: quarkus
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - run: ./mvnw -B verify

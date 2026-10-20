@@ -8,6 +8,8 @@
  * rather than floating on a range.
  *
  *   node scripts/version-all.mjs 0.2.0
+ *
+ * The Maven poms of quarkus/ follow the same number.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -47,4 +49,20 @@ for (const dir of packages) {
   }
   writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`);
   console.log(`${manifest.name} → ${version}`);
+}
+
+// The Quarkus server, a Maven reactor: the parent's version and the one each module names as
+// its parent. Only those - the first <version> of a pom, and the one inside <parent> - so a
+// dependency's version is never touched.
+for (const pom of ['quarkus/pom.xml', 'quarkus/runtime/pom.xml', 'quarkus/conformance/pom.xml'].filter((path) => existsSync(path))) {
+  const before = readFileSync(pom, 'utf8');
+  const after = pom === 'quarkus/pom.xml'
+    ? before.replace(/(<artifactId>quarkus-livewire-parent<\/artifactId>\s*<version>)[^<]+(<\/version>)/, `$1${version}$2`)
+    : before.replace(/(<parent>[\s\S]*?<version>)[^<]+(<\/version>[\s\S]*?<\/parent>)/, `$1${version}$2`);
+  if (after === before && !before.includes(`<version>${version}</version>`)) {
+    console.error(`${pom}: no version to set`);
+    process.exit(1);
+  }
+  writeFileSync(pom, after);
+  console.log(`${pom} → ${version}`);
 }

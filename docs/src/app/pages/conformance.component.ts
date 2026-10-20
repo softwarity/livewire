@@ -175,7 +175,8 @@ interface Scenario {
     <p>
       A second implementation is not started until the suite passes on the first. The
       <a routerLink="/go">Go server</a> was written against a list of scenarios that already ran green
-      against <a routerLink="/nestjs">NestJS</a> — which turns "does it behave the same?" from a
+      against <a routerLink="/nestjs">NestJS</a>, and the <a routerLink="/quarkus">Quarkus server</a>
+      against both — which turns "does it behave the same?" from a
       judgement call into a test run.
     </p>
 
@@ -200,7 +201,8 @@ for (const scenario of SCENARIOS) {
 }`;
 
   protected readonly run = `npm test          # protocol, mock, nestjs, angular
-cd go && go test -race ./...`;
+cd go && go test -race ./...
+cd quarkus && ./mvnw verify`;
 
   /** The client half, mirroring `CLIENT_SCENARIOS`. */
   protected readonly clientScenarios: Scenario[] = [

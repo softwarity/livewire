@@ -88,6 +88,11 @@ import { CodeComponent } from '../code/code.component';
         <span class="feature-title">Go server</span>
         <span class="feature-desc">The same protocol, one <code>http.Handler</code>, no reflection.</span>
       </a>
+      <a routerLink="/quarkus" class="feature-card">
+        <app-brand class="feature-icon" brand="quarkus" />
+        <span class="feature-title">Quarkus server</span>
+        <span class="feature-desc">An annotated CDI bean per topic, read on a worker.</span>
+      </a>
       <a routerLink="/angular" class="feature-card">
         <app-brand class="feature-icon" brand="angular" />
         <span class="feature-title">Angular client</span>
@@ -96,7 +101,7 @@ import { CodeComponent } from '../code/code.component';
       <a routerLink="/conformance" class="feature-card">
         <mat-icon class="feature-icon">fact_check</mat-icon>
         <span class="feature-title">Conformance suite</span>
-        <span class="feature-desc">The scenarios all three servers pass, run in CI.</span>
+        <span class="feature-desc">The scenarios all four servers pass, run in CI.</span>
       </a>
       <a routerLink="/demo" class="feature-card">
         <mat-icon class="feature-icon">bolt</mat-icon>
@@ -112,6 +117,10 @@ import { CodeComponent } from '../code/code.component';
     <p>Or, for a Go server:</p>
 
     <app-code lang="bash" [code]="installGo" />
+
+    <p>Or, for a Quarkus server:</p>
+
+    <app-code lang="xml" [code]="installQuarkus" />
 
     <h3>The server: what this list is</h3>
 
@@ -172,7 +181,7 @@ import { CodeComponent } from '../code/code.component';
 
     <p>
       Extracted from a service in production. The protocol is specified and frozen enough to implement
-      against; three server implementations pass the same
+      against; four server implementations pass the same
       <a routerLink="/conformance">conformance suite</a>. See
       <a href="https://github.com/softwarity/livewire/blob/main/TODO.md" target="_blank" rel="noopener">TODO.md</a>
       for what is done, what is next, and why in that order.
@@ -184,6 +193,12 @@ export class GettingStartedComponent {
 npm install @softwarity/livewire           # the Angular client`;
 
   protected readonly installGo = `go get github.com/softwarity/livewire/go`;
+
+  protected readonly installQuarkus = `<dependency>
+    <groupId>io.softwarity</groupId>
+    <artifactId>quarkus-livewire</artifactId>
+    <version>0.4.0</version>
+</dependency>`;
 
   protected readonly source = `@Injectable()
 @LiveTopic('messages')

@@ -58,9 +58,10 @@ operation, and the sort order stays in the database where it was written.
 | [`@softwarity/livewire`](./packages/angular) | client implementation for Angular |
 | [`@softwarity/livewire-mock`](./packages/mock) | an in-memory server, and the [conformance scenarios](./packages/mock/src/conformance.ts) every server passes |
 | [`github.com/softwarity/livewire/go`](./go) | server implementation for Go |
+| [`io.softwarity:quarkus-livewire`](./quarkus) | server implementation for Quarkus |
 
 Everything npm ships carries one version; the Go module is tagged `go/vX.Y.Z`
-in the same release.
+in the same release, and the Quarkus library carries that number too.
 
 ## What it is not
 
@@ -80,7 +81,7 @@ in the page, with every frame shown both ways.
 
 ## Status
 
-Extracted from a service in production. The protocol is specified, and three
-server implementations pass the same twelve conformance scenarios — in-memory,
-NestJS and Go. Nothing is published yet. See [TODO.md](./TODO.md) for what is
+Extracted from a service in production. The protocol is specified, and four
+server implementations pass the same seventeen conformance scenarios — in-memory,
+NestJS, Go and Quarkus. Nothing is published yet. See [TODO.md](./TODO.md) for what is
 done, what is next, and why in that order.

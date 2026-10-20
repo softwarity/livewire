@@ -23,6 +23,10 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/go.component').then((m) => m.GoComponent),
   },
   {
+    path: 'quarkus',
+    loadComponent: () => import('./pages/quarkus.component').then((m) => m.QuarkusComponent),
+  },
+  {
     path: 'angular',
     loadComponent: () => import('./pages/angular.component').then((m) => m.AngularComponent),
   },

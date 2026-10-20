@@ -229,8 +229,8 @@ Two suites, one specification.
 
 `packages/mock/src/conformance.ts` holds the scenarios every **server** must
 pass. They are driven over an abstract wire, so the same list runs against the
-in-memory server, the NestJS one and the Go one — the last two over a real
-socket.
+in-memory server, the NestJS one, the Go one and the Quarkus one — the last
+three over a real socket.
 
 `packages/mock/src/client-conformance.ts` holds the scenarios every **client**
 must pass. It works the other way: it feeds frames in and reads what the screen

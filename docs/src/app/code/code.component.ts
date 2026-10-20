@@ -12,8 +12,10 @@ import 'prismjs/components/prism-typescript';
 import 'prismjs/components/prism-bash';
 import 'prismjs/components/prism-json';
 import 'prismjs/components/prism-go';
+import 'prismjs/components/prism-java';
+import 'prismjs/components/prism-properties';
 
-export type CodeLang = 'ts' | 'typescript' | 'bash' | 'shell' | 'json' | 'go' | 'html' | 'text';
+export type CodeLang = 'ts' | 'typescript' | 'bash' | 'shell' | 'json' | 'go' | 'java' | 'xml' | 'properties' | 'html' | 'text';
 
 /**
  * Renders a Prism-highlighted code block with the Catppuccin Mocha theme.

@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Marks the jar for CDI discovery: Quarkus indexes it, and the registry, the server and the notifier are found. -->
+<beans xmlns="https://jakarta.ee/xml/ns/jakartaee" version="4.0" bean-discovery-mode="annotated"/>

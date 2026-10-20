@@ -28,21 +28,25 @@ Extrait du socle temps réel de `fpl-svc` / `fpl-ui` (en production), générali
 | ✅ | `packages/nestjs` — `@softwarity/nestjs-livewire` | 54 |
 | ✅ | `packages/angular` — `@softwarity/livewire` | 47 |
 | ✅ | `go/` — `github.com/softwarity/livewire/go` | 32, sous `-race` |
+| ✅ | `quarkus/` — `io.softwarity:quarkus-livewire` (+ fixture `conformance/`) | 12 |
 | ✅ | `docs/` — site GitHub Pages, 7 pages, **démo qui tourne** | — |
 
-Les 12 scénarios serveur passent contre **trois** serveurs : en mémoire, NestJS
-(socket `ws` réel), Go (binaire compilé, socket réel). Les 11 scénarios client
+Les 17 scénarios serveur passent contre **quatre** serveurs : en mémoire, NestJS
+(socket `ws` réel), Go (binaire compilé, socket réel), Quarkus (fast-jar de la
+fixture, socket réel). Les 11 scénarios client
 passent contre le client Angular — ils nourrissent des trames et lisent ce que
 l'écran montrerait, ce qui couvre le transport *et* l'application des trames.
 Les deux défauts de la 0.2.x (envoi sur socket `CONNECTING`, styles avalés) sont
 passés à travers 32 tests parce que rien ne mettait le client à l'épreuve.
 
-CI : `unit-tests.yml` (job TypeScript + job Go), `release.yml` (bump commun,
+CI : `unit-tests.yml` (job TypeScript, avec un JDK pour la conformité Quarkus, + job Go + job Quarkus), `release.yml` (bump commun,
 pose `vX.Y.Z` **et** `go/vX.Y.Z`, pousse avec `PAT_TOKEN`), `tag.yml` (publie sur
 npm dans l'ordre protocol → mock → nestjs → angular, après le build), `deploy-doc.yml`.
 
 **Il reste** : rien de prévu. Le niveau 2 (commandes et notifications) est fait
-et conforme sur les trois serveurs et sur le client.
+et conforme sur les quatre serveurs et sur le client. **Publication du jar
+Quarkus** : pas encore câblée dans `release.yml`/`tag.yml` (Maven Central ou
+GitHub Packages, à trancher).
 
 ## 3. Carte du dépôt
 
@@ -52,8 +56,9 @@ packages/mock/       serveur en mémoire ; src/conformance.ts = Wire, Conversati
 packages/nestjs/     LivewireModule.forRoot, LivewireGateway, WindowedSource/PagedSource/SingleWindowSource
 packages/angular/    LivewireClient, LiveList, LiveTopic, LiveWindowDataSource, LiveIndicatorComponent
 go/                  protocol.go, patch.go, window.go (Registry), server.go, cmd/conformance (fixture de test)
+quarkus/             runtime/ (Livewire, Registry, Connection, Frames, Source…) + conformance/ (fixture, jamais publiée)
 docs/                site Angular 21 autonome (pas un workspace npm) publié sur GitHub Pages
-scripts/version-all.mjs   passe tous les paquets au même numéro et épingle les dépendances croisées
+scripts/version-all.mjs   passe tous les paquets au même numéro et épingle les dépendances croisées (POM Maven compris)
 ```
 
 ## 4. Décisions tranchées — ne pas rouvrir sans raison
@@ -99,6 +104,22 @@ Chacune a coûté une session de débogage ou une discussion déjà eue.
 - La gateway configurée est définie **dans** `forRoot` (le chemin est un argument
   de décorateur) avec un constructeur explicite (`design:paramtypes` ne s'hérite
   pas).
+
+**Serveur Quarkus**
+
+- Une **bibliothèque**, pas une extension : une route Vert.x (`@Observes Router`)
+  au chemin `livewire.path`, donc sous `quarkus.http.root-path`, et CDI pour
+  trouver les sources. Le jar porte `META-INF/beans.xml`.
+- Les sources sont injectées par `Instance<Source<?>>`, **jamais** le type brut
+  `Instance<Source>` : CDI n'associe un type brut qu'aux beans dont les arguments
+  de type sont `Object`, et aucune source n'était trouvée.
+- Les commandes sont des méthodes `@LiveCommand` sur un bean qui implémente le
+  marqueur `LiveCommands` : sans injection, Quarkus supprime le bean au build.
+- `read` et les commandes tournent sur un worker (`executeBlocking`) : Panache et
+  JDBC bloquent. Tout ce qui touche une connexion passe par son contexte Vert.x.
+- Dans une source, les collaborateurs se lisent par **méthodes** : un champ lu à
+  travers un proxy client est celui du proxy (la fixture l'a payé, 6 scénarios
+  rouges).
 
 **Client Angular**
 
@@ -180,6 +201,8 @@ npm test -w @softwarity/livewire # un seul
 
 cd go && go vet ./... && go test -race ./...
 
+cd quarkus && ./mvnw verify      # le diff, la signature, le registre
+
 # Le site consomme les paquets construits : `npm run build` à la racine d'abord.
 cd docs && npm ci && npm start   # le site, avec la démo, sur :4200
 cd docs && npm run build         # ce que fait deploy-doc.yml (avec --base-href /livewire/)
@@ -188,6 +211,11 @@ cd docs && npm run build         # ce que fait deploy-doc.yml (avec --base-href 
 Le job Go de la conformité TypeScript compile un binaire (`go build` puis
 exécution) — `go run` laissait un processus parent et faisait pendre jest deux
 minutes. La suite se saute d'elle-même là où Go est absent.
+
+Idem côté Quarkus : `quarkus-server.spec.ts` lance `./mvnw package` puis le
+fast-jar de `quarkus/conformance` sur un port libre, et attend que le port
+accepte une connexion (l'événement de démarrage de Quarkus passe avant que le
+serveur HTTP écoute). Sautée là où `java` est absent.
 
 ## 7. Ce qui reste
 
