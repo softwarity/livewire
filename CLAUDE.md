@@ -57,8 +57,7 @@ deploy` (un `<server id="central">` factice suffit) → `target/central-publishi
 
 **Il reste** : rien de prévu. Le niveau 2 (commandes et notifications) est fait
 et conforme sur les quatre serveurs et sur le client. **Publication du jar
-Quarkus** : câblée (Maven Central), pas encore éprouvée — la première release
-dira si les secrets et la clé sont bons.
+Quarkus** : sur Maven Central depuis 0.5.0 (clé GPG `CCC4A145E0117CA7`, secrets d'org).
 
 ## 3. Carte du dépôt
 

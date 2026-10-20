@@ -110,6 +110,5 @@ in the page, with every frame shown both ways.
 
 Extracted from a service in production. The protocol is specified, and four
 server implementations pass the same seventeen conformance scenarios — in-memory,
-NestJS, Go and Quarkus. The npm packages and the Go module are published; the
-Quarkus library goes to Maven Central with the next release. See [TODO.md](./TODO.md) for what is
+NestJS, Go and Quarkus. Published: npm, the Go module proxy and Maven Central. See [TODO.md](./TODO.md) for what is
 done, what is next, and why in that order.
