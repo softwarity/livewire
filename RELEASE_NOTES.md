@@ -6,6 +6,12 @@
 
 - **A Quarkus server**, `io.softwarity:quarkus-livewire` (`quarkus/`): the fourth implementation of the contract, and it passes the same seventeen conformance scenarios as the in-memory, NestJS and Go servers, level 2 included, over a real socket (`packages/mock/test/quarkus-server.spec.ts` drives the `quarkus/conformance` fixture). A source is a CDI bean annotated `@LiveTopic` implementing `Source<Q>` — `readQuery`, `key`, `wake` (a Mutiny `Multi`) and `read`, which runs on a worker so a Panache or JDBC read may block. Commands are `@LiveCommand` methods of a bean implementing `LiveCommands`; `Livewire.notify(topic, payload)` tells every client; a `LivewireAuthorizer` bean, if there is one, decides who opens the socket. The socket is a route at `livewire.path` on the application's router, so under `quarkus.http.root-path` like any other. Built against Quarkus 3.40 and Java 21; the version follows the npm packages (`scripts/version-all.mjs` writes the poms too), and CI runs its tests and the conformance suite against it.
 
+- **On Maven Central.** `io.softwarity:quarkus-livewire` is published with the npm packages, under the same version, signed and with its sources and javadoc. A release now publishes everything before it pushes anything: if a registry refuses, no tag, no GitHub Release and no commit are left behind.
+
+### Documentation
+
+- **One source, three servers.** The README and the getting-started page show the same source in NestJS, Go and Quarkus side by side, and the site has a Quarkus page.
+
 ---
 
 ## 0.4.0

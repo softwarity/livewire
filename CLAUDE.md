@@ -39,11 +39,14 @@ l'écran montrerait, ce qui couvre le transport *et* l'application des trames.
 Les deux défauts de la 0.2.x (envoi sur socket `CONNECTING`, styles avalés) sont
 passés à travers 32 tests parce que rien ne mettait le client à l'épreuve.
 
-CI : `unit-tests.yml` (job TypeScript, avec un JDK pour la conformité Quarkus, + job Go + job Quarkus), `release.yml` (bump commun,
-pose `vX.Y.Z` **et** `go/vX.Y.Z`, pousse avec `PAT_TOKEN` ; vérifie d'abord le token
-npm, le token Central et la clé GPG ; stage aussi les poms), `tag.yml` (un seul job :
-build, tests, puis `./mvnw -Prelease deploy` vers Maven Central — attend la validation
-du Portal —, puis npm dans l'ordre protocol → mock → nestjs → angular), `deploy-doc.yml`.
+CI : `unit-tests.yml` (job TypeScript, avec un JDK pour la conformité Quarkus, + job Go + job Quarkus), `release.yml` (vérifie le token
+npm, le token Central et la clé GPG ; bump commun, build, tests, stage aussi les poms ;
+puis `release-flow` avec `publish: ./scripts/publish.sh`, qui tourne **après le commit
+et le tag locaux, avant tout push** : `./mvnw -Prelease deploy` vers Maven Central —
+attend la validation du Portal —, puis npm dans l'ordre protocol → mock → nestjs →
+angular. Un échec ne pousse rien : ni tag, ni Release, ni commit. Enfin `go/vX.Y.Z`),
+`deploy-doc.yml`. Il n'y a plus de `tag.yml` : publier sur le tag poussé laissait un
+tag et une Release derrière un registre qui refuse.
 
 Maven Central passe par le **Central Portal** (`central-publishing-maven-plugin`,
 profil `release` du pom parent : sources, javadoc, signature GPG ; la fixture est
@@ -185,7 +188,10 @@ Chacune a coûté une session de débogage ou une discussion déjà eue.
   ne pas défaire : un import relatif porte son extension (`./patch.js`), sinon
   Node refuse la branche ESM ; et les configurations jest ont un
   `moduleNameMapper` qui la retire, puisque jest lit le TypeScript.
-- `tag.yml` ne réagit qu'à `v*` — surtout pas `*`, sinon le tag Go republie tout.
+- La publication est dans `scripts/publish.sh`, appelé par `release-flow` avant le
+  push. Ne pas recréer de workflow sur `push: tags` : il republierait ce qui l'est déjà.
+  Si Maven passe et npm échoue, la version est sur Central mais rien n'est poussé :
+  relancer réessaierait la même version, que Central refuse — publier npm à la main.
 - **Le paquet Angular se publie depuis `packages/angular/dist`**, pas depuis la
   racine du workspace : ng-packagr écrit le vrai manifeste (FESM, typings, carte
   d'exports) dans `dist`, et c'est ce dossier qui *est* le paquet. Publié par

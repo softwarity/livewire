@@ -133,9 +133,9 @@ version change, trame illisible, `unsubscribe` inconnu.
 ## 4. Doc, CI, publication
 
 Sur le modèle de `softwarity/nestjs-granted` : `docs/` est une application
-Angular publiée sur GitHub Pages, `release.yml` bump et pose le tag avec le PAT,
-`tag.yml` publie sur Maven Central (le serveur Quarkus) puis sur npm, dans un
-seul job : une release publie tout ou s'arrête au premier refus.
+Angular publiée sur GitHub Pages, `release.yml` bump, publie sur Maven Central (le serveur Quarkus) puis sur npm via
+le `publish` de `release-flow` — avant tout push —, et ne pose le tag qu'ensuite :
+une release publie tout ou ne laisse rien derrière elle.
 
 **Ce qui diffère ici** : trois paquets versionnés **ensemble**. Le contrat est
 décrit des deux côtés ; une version où les deux ne s'accordent pas est une

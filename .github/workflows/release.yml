@@ -1,15 +1,18 @@
 name: Create Tag/Release
 run-name: ${{ github.actor }} release ${{ github.repository }}
 
-# One run, two tags. The wire contract is described in every package, in the Go
-# module and in the Quarkus server, so they carry one version between them:
-# `v1.2.3` publishes the npm packages and the Maven artifact (tag.yml), `go/v1.2.3`
-# is what `go get` looks for on a module in a subdirectory. Posting one without the other is how a server and a client end
-# up disagreeing about the protocol they share.
+# One run publishes everything. The wire contract is described in every package,
+# in the Go module and in the Quarkus server, so they carry one version between
+# them: the npm packages and the Maven artifact go out under `v1.2.3`, and
+# `go/v1.2.3` is what `go get` looks for on a module in a subdirectory. Posting one
+# without the other is how a server and a client end up disagreeing about the
+# protocol they share.
 #
 # The bump, the notes and the GitHub Release are `softwarity/release-flow`'s
-# business, as everywhere else. What is specific to this repository - one
-# version across four packages, and a second tag - is arranged around it.
+# business, as everywhere else. Publication is too: its `publish` command
+# (scripts/publish.sh) runs once the release commit and tag exist on the runner,
+# before anything is pushed - so a registry that refuses leaves no tag, no GitHub
+# Release and no commit behind.
 on:
   workflow_dispatch:
     inputs:
@@ -27,8 +30,7 @@ jobs:
   create-release:
     runs-on: ubuntu-latest
     steps:
-      # The PAT is what the action pushes with: a tag pushed by GITHUB_TOKEN
-      # triggers no workflow, and tag.yml is what publishes to npm.
+      # The PAT is what the action pushes with, past the branch protection.
       # fetch-depth: 0 so the tags are visible.
       - uses: actions/checkout@v5
         with:
@@ -38,15 +40,22 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      # The conformance suite drives the Quarkus fixture too: a JDK, or it skips itself.
+      # The conformance suite drives the Quarkus fixture too: a JDK, or it skips
+      # itself. The Portal user token goes into a <server id="central">, the key
+      # into the runner's keyring; the gpg plugin reads MAVEN_GPG_PASSPHRASE.
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
           cache: maven
+          server-id: central
+          server-username: MAVEN_CENTRAL_USERNAME
+          server-password: MAVEN_CENTRAL_TOKEN
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
-      # Checked before anything is tagged: a token that expired turns a release
-      # into a tag nobody can publish, and the tag is the hard part to undo.
+      # Checked before the build and the tests: a token that expired would
+      # otherwise be found ten minutes later, by the publish step.
       - name: Verify the npm token still works
         run: |
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
@@ -59,13 +68,11 @@ jobs:
         env:
           CENTRAL_USERNAME: ${{ vars.MAVEN_CENTRAL_USERNAME }}
           CENTRAL_TOKEN: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
           curl -sSf -o /dev/null \
             -H "Authorization: Bearer $(printf '%s:%s' "$CENTRAL_USERNAME" "$CENTRAL_TOKEN" | base64 -w0)" \
             "https://central.sonatype.com/api/v1/publisher/published?namespace=io.softwarity&name=quarkus-livewire&version=0.0.0"
-          printf '%s' "$GPG_PRIVATE_KEY" | gpg --batch --import
           echo check | gpg --batch --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --clearsign > /dev/null
 
       - run: npm ci
@@ -101,6 +108,11 @@ jobs:
         uses: softwarity/release-flow@v1
         with:
           bump: ${{ inputs.bump }}
+          publish: ./scripts/publish.sh
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ vars.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_TOKEN: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       # Go has no registry: the tag is the publication, and a module in a
       # subdirectory is fetched under `go/vX.Y.Z`. Same commit, same number.

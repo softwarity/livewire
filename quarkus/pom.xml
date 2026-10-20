@@ -90,7 +90,7 @@
 
     <!--
       Publication to Maven Central, through the Central Portal (OSSRH is gone). Only on a
-      release - .github/workflows/tag.yml runs `./mvnw -Prelease deploy` - so a plain
+      release - scripts/publish.sh runs `./mvnw -Prelease deploy` - so a plain
       `verify` needs neither a key nor a token.
 
       The bundle is uploaded and validated, then published without waiting for the
