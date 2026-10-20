@@ -46,7 +46,7 @@ jobs:
         working-directory: quarkus
         run: ./mvnw -B -Prelease deploy
         env:
-          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_USERNAME: ${{ vars.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_TOKEN: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
       # npm, in dependency order: the protocol first, since every other one names it.

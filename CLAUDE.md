@@ -47,7 +47,7 @@ du Portal —, puis npm dans l'ordre protocol → mock → nestjs → angular), 
 
 Maven Central passe par le **Central Portal** (`central-publishing-maven-plugin`,
 profil `release` du pom parent : sources, javadoc, signature GPG ; la fixture est
-exclue du bundle). OSSRH n'existe plus. Secrets : `MAVEN_CENTRAL_USERNAME` /
+exclue du bundle). OSSRH n'existe plus. Variable d'org `MAVEN_CENTRAL_USERNAME`, secrets
 `MAVEN_CENTRAL_TOKEN` (user token du Portal), `GPG_PRIVATE_KEY`, `GPG_PASSPHRASE`.
 Vérifier le bundle sans rien envoyer : `./mvnw -Prelease -Dgpg.skip -DskipUpload=true
 deploy` (un `<server id="central">` factice suffit) → `target/central-publishing/central-bundle.zip`.

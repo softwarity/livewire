@@ -57,7 +57,7 @@ jobs:
       # answer 401.
       - name: Verify the Maven Central token and the signing key still work
         env:
-          CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          CENTRAL_USERNAME: ${{ vars.MAVEN_CENTRAL_USERNAME }}
           CENTRAL_TOKEN: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
