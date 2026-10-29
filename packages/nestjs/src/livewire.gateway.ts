@@ -54,6 +54,9 @@ export class LivewireGateway implements OnGatewayConnection, OnGatewayDisconnect
   /** What each socket is listening to notifications with - SPEC §6.2. */
   private readonly listening = new Map<Socket, Subscription>();
 
+  /** The request that opened each socket: who is asking - SPEC §5.5. */
+  private readonly openings = new Map<Socket, IncomingMessage>();
+
   constructor(
     private readonly registry: LivewireRegistry,
     @Inject(LIVEWIRE_OPTIONS) private readonly options: LivewireOptions,
@@ -70,6 +73,7 @@ export class LivewireGateway implements OnGatewayConnection, OnGatewayDisconnect
       return;
     }
     this.sockets.set(client, new Map());
+    this.openings.set(client, request);
     // Notifications are not a subscription: every authorised socket gets them,
     // and a client that does not know the topic ignores it.
     this.listening.set(
@@ -86,6 +90,7 @@ export class LivewireGateway implements OnGatewayConnection, OnGatewayDisconnect
       closing.complete();
     }
     this.sockets.delete(client);
+    this.openings.delete(client);
     this.listening.get(client)?.unsubscribe();
     this.listening.delete(client);
   }
@@ -109,7 +114,7 @@ export class LivewireGateway implements OnGatewayConnection, OnGatewayDisconnect
     const closing = new Subject<void>();
     open.set(body.id, closing);
 
-    const query = source.readQuery(body.query);
+    const query = source.readQuery(body.query, this.openings.get(client) as IncomingMessage);
     return this.updates(body.id, () => source.watch(query)).pipe(
       takeUntil(closing),
       map((data) => ({ event: UPDATE_EVENT, data })),

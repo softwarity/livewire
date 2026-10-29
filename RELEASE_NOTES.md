@@ -2,6 +2,10 @@
 
 ## NEXT RELEASE
 
+### Features
+
+- **A source may answer by who is asking** (SPEC §5.5): a tenant's own rows, a user's own tasks. The source is given the request that opened the socket, the same for every subscription of that socket, beside the query the client wrote; who is asking is read there, never in the query, which the client writes and could fill with someone else, and it is part of the source's key, so two callers asking the same query never share a window. On Quarkus a `SourceWithContext<Q>` (`readQuery(JsonNode raw, RoutingContext opening)`, the rest as `Source`); on Go a `SourceWithContext` registered with `registry.RegisterWithContext` (`ReadQuery(raw, opening *http.Request)`); on NestJS a second parameter of `readQuery` (`opening: IncomingMessage`); on the in-memory server `connect(opening)`, read by `readQuery(raw, opening)` and `authorize(opening)`. A `Source` is untouched everywhere. Two conformance scenarios, passed by the four servers: a source answers who opened the socket whatever the query claims, and two callers asking the same query do not share a window (a harness's `Wire.as(caller)` opens a second connection; over a real socket the fixtures read the caller from `?caller=`).
+
 ---
 
 ## 0.5.0

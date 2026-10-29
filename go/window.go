@@ -3,6 +3,8 @@ package livewire
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"net/http"
 	"sync"
 	"time"
 )
@@ -46,6 +48,38 @@ type Source interface {
 
 	// Read is the window as it stands.
 	Read(ctx context.Context, query any) (Window, error)
+}
+
+// SourceWithContext is a live list whose window depends on who is asking -
+// SPEC §5.5: a tenant's own rows, a user's own tasks. A Source in every other
+// respect; a list that is the same for everybody stays a Source.
+type SourceWithContext interface {
+	// ReadQuery is the trust boundary, as Source.ReadQuery, with the request
+	// that opened the socket this subscription arrives on: the same for every
+	// subscription of that socket. Who is asking is read there, never in raw,
+	// which the client writes and could fill with someone else.
+	ReadQuery(raw json.RawMessage, opening *http.Request) (any, error)
+
+	// Key answers what two identical questions share, as Source.Key. Whatever
+	// ReadQuery took from the opening request is part of it: two callers
+	// asking the same query never share a window.
+	Key(query any) string
+
+	// Wake fires whenever this source may have something new to say, as
+	// Source.Wake.
+	Wake() <-chan struct{}
+
+	// Read is the window as it stands, as Source.Read.
+	Read(ctx context.Context, query any) (Window, error)
+}
+
+// contextual is a SourceWithContext as the registry knows sources: it shares,
+// wakes and reads through it like any other. Its query is made by the
+// connection, with the request that opened the socket; never without it.
+type contextual struct{ SourceWithContext }
+
+func (c contextual) ReadQuery(json.RawMessage) (any, error) {
+	return nil, errors.New("a source with context reads its query with the request that opened the socket")
 }
 
 // window is one shared read: whoever asks the same question watches this.
@@ -117,6 +151,12 @@ func (r *Registry) Command(name string) Command {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 	return r.commands[name]
+}
+
+// RegisterWithContext adds a source whose window depends on who is asking
+// under a topic - SPEC §5.5. Registering twice replaces.
+func (r *Registry) RegisterWithContext(topic string, source SourceWithContext) {
+	r.Register(topic, contextual{source})
 }
 
 // Find answers the source behind a topic, or nil.

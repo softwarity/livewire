@@ -41,7 +41,7 @@ réaliste (trois jours). Élargir se paie sur ces trois lignes à la fois.
 | ✅ | `packages/angular` — implémentation client | 47 |
 | ✅ | `go/` — implémentation Go | 32, sous `-race` |
 | ✅ | `quarkus/` — implémentation Quarkus | 12 |
-| ✅ | conformité — 17 scénarios serveur × 4 serveurs, 14 scénarios client | |
+| ✅ | conformité — 19 scénarios serveur × 4 serveurs, 14 scénarios client | |
 | ✅ | doc GitHub Pages, avec démo pilotée par le serveur en mémoire | |
 | ✅ | CI : `unit-tests`, `release` (deux tags), `tag`, `deploy-doc` | |
 | ✅ | **publication** — 0.1.0 sur npm, `go/v0.1.0`, Release GitHub | |

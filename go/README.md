@@ -46,6 +46,28 @@ func (s *MessagesSource) Wake() <-chan struct{} { … }   // what makes it read 
 func (s *MessagesSource) Read(ctx context.Context, q any) (livewire.Window, error) { … }
 ```
 
+## A source that depends on who is asking
+
+A tenant's own rows, a user's own tasks: implement `SourceWithContext` and
+register it with `RegisterWithContext`. Same methods as `Source`, but
+`ReadQuery` is also given the request that opened the socket, the same for
+every subscription of that socket (SPEC §5.5):
+
+```go
+func (t tasks) ReadQuery(raw json.RawMessage, opening *http.Request) (any, error) {
+	owner := ownerOf(opening)               // who opened the socket, never from raw
+	return taskQuery{owner: owner, search: searchOf(raw)}, nil
+}
+
+// Who is asking is part of the key: two callers never share a window.
+func (t tasks) Key(query any) string { q := query.(taskQuery); return q.owner + "|" + q.search }
+
+registry.RegisterWithContext("tasks", tasks{})
+```
+
+Who is asking comes from the opening request, never from the query: the client
+writes the query, and could put someone else there. A `Source` is untouched.
+
 ## What the registry does for you
 
 - **One read per question.** Ten clients asking the same thing share one query.

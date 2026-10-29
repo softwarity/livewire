@@ -58,6 +58,27 @@ the registry finds it by its decorator.
 | `SingleWindowSource` | one window, no query: a filter list, a setting |
 | `WindowedSource<Q>` | anything else - you write `readQuery` and `keyOf` too |
 
+## A source that depends on who is asking
+
+A tenant's own rows, a user's own tasks: `readQuery` is also given the request
+that opened the socket, the same for every subscription of that socket (SPEC
+§5.5). A source that is the same for everybody leaves it out of its signature.
+
+```ts
+readQuery(raw: JsonValue | undefined, opening: IncomingMessage): TaskQuery {
+  const owner = ownerOf(opening);          // who opened the socket, never from raw
+  return { owner, search: searchOf(raw) };
+}
+
+// Who is asking is part of the key: two callers never share a window.
+protected keyOf(query: TaskQuery): string {
+  return `${query.owner}|${query.search}`;
+}
+```
+
+Who is asking comes from the opening request, never from the query: the client
+writes the query, and could put someone else there.
+
 ## Commands and notifications
 
 Level 2, and optional: a screen that only reads lists needs neither.

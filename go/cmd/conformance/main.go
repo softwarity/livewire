@@ -11,6 +11,7 @@
 //
 //   - `rows`  a list whose newest row arrives at the top
 //   - `still` a window that never changes
+//   - `mine`  one row, who opened the socket (`?caller=` of its URL)
 //
 // POST /touch makes an arrival happen.
 package main
@@ -92,6 +93,23 @@ func (s still) Read(context.Context, any) (livewire.Window, error) {
 	return livewire.Window{Rows: []livewire.Row{{ID: "always", UpdatedAt: "v1"}}, Total: &total}, nil
 }
 
+// mine is who opened the socket, whatever the query claims - SPEC §5.5.
+type mine struct{ feed *feed }
+
+func (m mine) ReadQuery(_ json.RawMessage, opening *http.Request) (any, error) {
+	if caller := opening.URL.Query().Get("caller"); caller != "" {
+		return caller, nil
+	}
+	return "anonymous", nil
+}
+func (m mine) Key(query any) string  { return query.(string) }
+func (m mine) Wake() <-chan struct{} { return m.feed.wake() }
+
+func (m mine) Read(_ context.Context, query any) (livewire.Window, error) {
+	total := 1
+	return livewire.Window{Rows: []livewire.Row{{ID: query.(string), UpdatedAt: "v1"}}, Total: &total}, nil
+}
+
 func main() {
 	address := flag.String("addr", "127.0.0.1:0", "where to listen")
 	flag.Parse()
@@ -102,6 +120,7 @@ func main() {
 	registry := livewire.NewRegistry(1)
 	registry.Register("rows", rows{feed: shared})
 	registry.Register("still", still{feed: shared})
+	registry.RegisterWithContext("mine", mine{feed: shared})
 
 	server := livewire.NewServer(registry, livewire.Options{
 		Logger:  slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelWarn})),

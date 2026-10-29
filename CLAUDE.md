@@ -24,14 +24,14 @@ Extrait du socle temps réel de `fpl-svc` / `fpl-ui` (en production), générali
 | | Paquet | Tests |
 |---|---|---|
 | ✅ | `packages/protocol` — types + `SPEC.md` normative + le diff (`snapshotOf`, `patchOf`, `signatureOf`) | 15 |
-| ✅ | `packages/mock` — serveur en mémoire, 17 scénarios serveur **et 14 scénarios client** | 38 |
+| ✅ | `packages/mock` — serveur en mémoire, 19 scénarios serveur **et 14 scénarios client** | 38 |
 | ✅ | `packages/nestjs` — `@softwarity/nestjs-livewire` | 54 |
 | ✅ | `packages/angular` — `@softwarity/livewire` | 47 |
 | ✅ | `go/` — `github.com/softwarity/livewire/go` | 32, sous `-race` |
 | ✅ | `quarkus/` — `io.softwarity:quarkus-livewire` (+ fixture `conformance/`) | 12 |
 | ✅ | `docs/` — site GitHub Pages, 7 pages, **démo qui tourne** | — |
 
-Les 17 scénarios serveur passent contre **quatre** serveurs : en mémoire, NestJS
+Les 19 scénarios serveur passent contre **quatre** serveurs : en mémoire, NestJS
 (socket `ws` réel), Go (binaire compilé, socket réel), Quarkus (fast-jar de la
 fixture, socket réel). Les 11 scénarios client
 passent contre le client Angular — ils nourrissent des trames et lisent ce que

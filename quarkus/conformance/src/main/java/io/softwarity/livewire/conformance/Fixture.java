@@ -18,8 +18,10 @@ import io.softwarity.livewire.LiveTopic;
 import io.softwarity.livewire.Livewire;
 import io.softwarity.livewire.Row;
 import io.softwarity.livewire.Source;
+import io.softwarity.livewire.SourceWithContext;
 import io.softwarity.livewire.Window;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
 
 /**
  * What the shared scenarios expect, and nothing else — the twin of go/cmd/conformance.
@@ -27,6 +29,7 @@ import io.vertx.ext.web.Router;
  * <ul>
  * <li>{@code rows}: a list whose newest row arrives at the top;</li>
  * <li>{@code still}: a window that never changes;</li>
+ * <li>{@code mine}: one row, who opened the socket ({@code ?caller=} of its URL);</li>
  * <li>commands {@code touch} (an arrival) and {@code announce} (a notification);</li>
  * <li>{@code POST /touch}: an arrival, outside the socket.</li>
  * </ul>
@@ -127,6 +130,36 @@ public class Fixture {
         @Override
         public Window read(String query) {
             return Window.page(List.of(Row.of("always", "v1")), 1);
+        }
+    }
+
+    /** Who opened the socket, whatever the query claims — SPEC §5.5. */
+    @LiveTopic("mine")
+    @ApplicationScoped
+    public static class Mine implements SourceWithContext<String> {
+
+        @Inject
+        Feed feed;
+
+        @Override
+        public String readQuery(JsonNode raw, RoutingContext opening) {
+            String caller = opening.request().getParam("caller");
+            return caller == null || caller.isBlank() ? "anonymous" : caller;
+        }
+
+        @Override
+        public String key(String caller) {
+            return caller;
+        }
+
+        @Override
+        public Multi<?> wake() {
+            return feed.changes();
+        }
+
+        @Override
+        public Window read(String caller) {
+            return Window.page(List.of(Row.of(caller, "v1")), 1);
         }
     }
 

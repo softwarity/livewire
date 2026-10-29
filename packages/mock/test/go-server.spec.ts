@@ -58,8 +58,9 @@ function which(command: string): boolean {
     server?.kill();
   });
 
-  function wireOf(): Wire {
-    const socket = new WebSocket(address);
+  /** A connection opened by that caller (SPEC §5.5: `?caller=` of the upgrade request). */
+  function wireOf(caller = 'alice'): Wire {
+    const socket = new WebSocket(`${address}?caller=${encodeURIComponent(caller)}`);
     return {
       ready: new Promise<void>((resolve, reject) => {
         socket.once('open', () => resolve());
@@ -73,6 +74,7 @@ function which(command: string): boolean {
       },
       quiet: 250,
       close: () => socket.close(),
+      as: (other) => wireOf(other),
     };
   }
 

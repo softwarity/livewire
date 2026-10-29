@@ -34,7 +34,8 @@ import io.vertx.ext.web.RoutingContext;
  * livewire.coalesce=300ms      # how long a burst of changes gathers before a read
  * </pre>
  *
- * The sources are the beans annotated {@link LiveTopic}, the commands the {@link LiveCommand}
+ * The sources are the beans annotated {@link LiveTopic}, a {@link Source} or a
+ * {@link SourceWithContext}, the commands the {@link LiveCommand}
  * methods of the beans implementing {@link LiveCommands}, and a {@link LivewireAuthorizer} bean,
  * if there is one, decides who may open the socket. {@link #notify} tells every client
  * something happened.
@@ -55,6 +56,10 @@ public class Livewire {
     @Inject
     @Any
     Instance<Source<?>> sources;
+
+    @Inject
+    @Any
+    Instance<SourceWithContext<?>> contextualSources;
 
     @Inject
     @Any
@@ -113,7 +118,7 @@ public class Livewire {
                 socket.close(Frames.NOT_AUTHORISED, "Not authorised");
                 return;
             }
-            Connection connection = new Connection(this, socket, vertx.getOrCreateContext());
+            Connection connection = new Connection(this, socket, vertx.getOrCreateContext(), context);
             connections.add(connection);
             socket.closeHandler(closed -> {
                 connections.remove(connection);
@@ -166,18 +171,25 @@ public class Livewire {
         }
     }
 
+    /** A source under the topic its class names; none twice. */
+    @SuppressWarnings("rawtypes")
+    private void topic(Class<?> type, Source source) {
+        LiveTopic topic = type.getAnnotation(LiveTopic.class);
+        if (topic == null) {
+            return;
+        }
+        if (topics.put(topic.value(), source) != null) {
+            throw new IllegalStateException("livewire: two sources answer topic '" + topic.value() + "'");
+        }
+    }
+
     @SuppressWarnings("rawtypes")
     private void discover() {
         for (Instance.Handle<Source<?>> handle : sources.handles()) {
-            Class<?> type = handle.getBean().getBeanClass();
-            LiveTopic topic = type.getAnnotation(LiveTopic.class);
-            if (topic == null) {
-                continue;
-            }
-            Source previous = topics.put(topic.value(), handle.get());
-            if (previous != null) {
-                throw new IllegalStateException("livewire: two sources answer topic '" + topic.value() + "'");
-            }
+            topic(handle.getBean().getBeanClass(), handle.get());
+        }
+        for (Instance.Handle<SourceWithContext<?>> handle : contextualSources.handles()) {
+            topic(handle.getBean().getBeanClass(), new Contextual<>(handle.get()));
         }
         for (Instance.Handle<LiveCommands> handle : commandBeans.handles()) {
             Object bean = handle.get();

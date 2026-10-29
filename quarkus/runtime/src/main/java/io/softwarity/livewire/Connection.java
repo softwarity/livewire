@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.vertx.core.Context;
 import io.vertx.core.http.ServerWebSocket;
+import io.vertx.ext.web.RoutingContext;
 
 /**
  * One socket and the subscriptions open on it.
@@ -27,12 +28,15 @@ final class Connection {
     private final Livewire server;
     private final ServerWebSocket socket;
     private final Context context;
+    /** The request that opened the socket: who is asking, for a {@link SourceWithContext}. */
+    private final RoutingContext opening;
     private final Map<String, Subscription> subscriptions = new HashMap<>();
 
-    Connection(Livewire server, ServerWebSocket socket, Context context) {
+    Connection(Livewire server, ServerWebSocket socket, Context context, RoutingContext opening) {
         this.server = server;
         this.socket = socket;
         this.context = context;
+        this.opening = opening;
         socket.textMessageHandler(this::onFrame);
     }
 
@@ -89,7 +93,8 @@ final class Connection {
         Object query;
         try {
             JsonNode raw = data.get("query");
-            query = source.readQuery(raw == null || raw.isNull() ? null : raw);
+            JsonNode given = raw == null || raw.isNull() ? null : raw;
+            query = source instanceof Contextual<?> contextual ? contextual.readQuery(given, opening) : source.readQuery(given);
         } catch (RuntimeException refused) {
             write(server.frames().errorOf(id, refused.getMessage() == null ? "Query refused" : refused.getMessage()));
             return;

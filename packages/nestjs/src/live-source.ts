@@ -1,4 +1,5 @@
 import { SetMetadata } from '@nestjs/common';
+import type { IncomingMessage } from 'http';
 import type { Observable } from 'rxjs';
 import type { JsonValue, LiveWindow } from '@softwarity/livewire-protocol';
 
@@ -32,7 +33,14 @@ export interface LiveSource<Q = JsonValue> {
    * The trust boundary. What arrives is JSON and nothing more - clamp it,
    * whitelist it, default it, and hand back something the source can act on
    * without checking again.
+   *
+   * `opening` is the request that opened the socket this subscription arrives
+   * on - SPEC §5.5. A source whose window depends on who is asking (a tenant's
+   * own rows) reads the caller there, never in `raw`, which the client writes
+   * and could fill with someone else; and makes it part of its key, so two
+   * callers never share a window. A source that is the same for everybody
+   * leaves it out of its signature.
    */
-  readQuery(raw: JsonValue | undefined): Q;
+  readQuery(raw: JsonValue | undefined, opening: IncomingMessage): Q;
   watch(query: Q): Observable<LiveWindow>;
 }

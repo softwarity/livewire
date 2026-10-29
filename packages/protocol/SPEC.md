@@ -161,6 +161,19 @@ and a screen repainting on every read is a screen nobody can use.
 Two subscriptions whose queries produce the same key **SHOULD** share one read.
 The key is the source's business; the transport does not compute it.
 
+### 5.5 Who is asking
+
+A window **MAY** depend on who opened the socket: a tenant's own rows, a user's
+own tasks. A server **MUST** let a source read the upgrade request of the
+connection a subscription arrives on (§1), alongside the subscription's query,
+for every subscription of that socket.
+
+What a source takes from the upgrade request **MUST NOT** be taken from the
+query: the query is written by the client, and a client could answer as anyone
+by writing someone else there. And it **MUST** be part of the key (§5.4): two
+connections opened by different callers, asking the same query, never share a
+window.
+
 ## 6. Commands and notifications
 
 Level 2. A server **MAY** implement neither, either, or both; a client **MUST**
@@ -213,7 +226,8 @@ something happened that a reader should be told once.
   contract says what a window looks like, not what causes one to be read.
 - **Authorisation beyond the socket.** There is no per-topic or per-row
   permission model. A caller who may open the socket may subscribe to any topic
-  the server exposes; a server needing finer control filters inside the source.
+  the server exposes; a server needing finer control filters inside the source,
+  which reads who is asking from the upgrade request (§5.5).
 - **Frame size.** WebSocket sets no useful limit, but proxies do — one of them
   silently drops frames over ~64 kB. Sizing a window is the source's
   responsibility, and an implementation **SHOULD** document the ceiling it was

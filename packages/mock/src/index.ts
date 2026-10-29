@@ -41,9 +41,13 @@ export type MockCommand = (payload: JsonValue | undefined) => JsonValue | void;
  * `readQuery` is the same trust boundary as on a real server, and `windowFor`
  * answers the window for a question. Call `touched()` when whatever the source
  * reads has changed - that is what a write announces on a real one.
+ *
+ * `opening` is what the connection was opened with (`connect(opening)`), the
+ * in-memory stand-in for the upgrade request: a source answering by who is
+ * asking reads it there, never in the query the client wrote - SPEC §5.5.
  */
 export interface MockSource<Q = JsonValue> {
-  readQuery?(raw: JsonValue | undefined): Q;
+  readQuery?(raw: JsonValue | undefined, opening: JsonValue | undefined): Q;
   windowFor(query: Q): LiveWindow;
 }
 
@@ -64,9 +68,9 @@ export interface MockSocket {
 }
 
 export interface MockServerOptions {
-  /** Whether a socket may be used at all. Absent accepts every connection. */
-  authorize?: () => boolean;
-  refusal?: () => string;
+  /** Whether a socket may be used at all, from what it was opened with. Absent accepts every connection. */
+  authorize?: (opening: JsonValue | undefined) => boolean;
+  refusal?: (opening: JsonValue | undefined) => string;
   /**
    * Every frame, both ways, as it goes past.
    *
@@ -112,9 +116,12 @@ export class MockServer {
    * The returned object is what a screen talks to: `send` a frame in, receive
    * frames through `onmessage`. It is deliberately the shape of a `WebSocket`
    * so a client library can take either without knowing which.
+   *
+   * `opening` stands for the upgrade request: who opens the connection, as a
+   * real server reads it from its headers or its URL.
    */
-  connect(): MockSocket {
-    const client = new Client(this, this.options);
+  connect(opening?: JsonValue): MockSocket {
+    const client = new Client(this, this.options, opening);
     this.clients.add(client);
     client.onGone = () => this.clients.delete(client);
     // Opened on the next tick, as a real socket is: the caller has to be able
@@ -179,6 +186,7 @@ class Client {
   constructor(
     private readonly server: MockServer,
     private readonly options: MockServerOptions,
+    private readonly opening: JsonValue | undefined,
   ) {
     this.socket = {
       send: (frame: string) => this.onFrame(frame),
@@ -187,8 +195,8 @@ class Client {
   }
 
   start(): void {
-    if (this.options.authorize && !this.options.authorize()) {
-      const reason = this.options.refusal?.() ?? 'Not authorised';
+    if (this.options.authorize && !this.options.authorize(this.opening)) {
+      const reason = this.options.refusal?.(this.opening) ?? 'Not authorised';
       // The frame first, then the close - SPEC §1.
       this.push({ id: 'connection', type: 'error', reason });
       this.socket.onclose?.(NOT_AUTHORISED, 'Not authorised');
@@ -236,7 +244,9 @@ class Client {
     }
 
     // Subscribing under an open id replaces it, and the sequence restarts.
-    const query = source.readQuery ? source.readQuery(frame.query) : frame.query;
+    // Nothing is shared between subscriptions here, so what the source takes
+    // from the opening cannot reach another caller's window - SPEC §5.5.
+    const query = source.readQuery ? source.readQuery(frame.query, this.opening) : frame.query;
     this.open.set(frame.id, { topic: frame.topic, query, sent: null, signature: '', sequence: 0 });
     this.publish(frame.id);
   }

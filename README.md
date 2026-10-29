@@ -109,6 +109,6 @@ in the page, with every frame shown both ways.
 ## Status
 
 Extracted from a service in production. The protocol is specified, and four
-server implementations pass the same seventeen conformance scenarios — in-memory,
+server implementations pass the same nineteen conformance scenarios — in-memory,
 NestJS, Go and Quarkus. Published: npm, the Go module proxy and Maven Central. See [TODO.md](./TODO.md) for what is
 done, what is next, and why in that order.

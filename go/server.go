@@ -78,7 +78,7 @@ func (s *Server) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	connection := newConnection(s, socket)
+	connection := newConnection(s, socket, request)
 	// Listed while it is open, so a notification reaches it — SPEC §6.2.
 	s.listeners.Store(connection, connection)
 	defer s.listeners.Delete(connection)
@@ -89,6 +89,9 @@ func (s *Server) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 type connection struct {
 	server *Server
 	socket *websocket.Conn
+	// opening is the request that opened the socket: who is asking, for a
+	// SourceWithContext - SPEC §5.5.
+	opening *http.Request
 
 	// Writes are serialised: several subscriptions publish from their own
 	// goroutines, and a WebSocket has one frame at a time.
@@ -117,8 +120,8 @@ func (s *Server) Notify(ctx context.Context, topic string, payload any) {
 	})
 }
 
-func newConnection(server *Server, socket *websocket.Conn) *connection {
-	return &connection{server: server, socket: socket, subscriptions: map[string]context.CancelFunc{}}
+func newConnection(server *Server, socket *websocket.Conn, opening *http.Request) *connection {
+	return &connection{server: server, socket: socket, opening: opening, subscriptions: map[string]context.CancelFunc{}}
 }
 
 func (c *connection) serve(ctx context.Context) {
@@ -161,7 +164,13 @@ func (c *connection) onSubscribe(ctx context.Context, data json.RawMessage) {
 		return
 	}
 
-	query, err := source.ReadQuery(frame.Query)
+	var query any
+	var err error
+	if withContext, ok := source.(contextual); ok {
+		query, err = withContext.SourceWithContext.ReadQuery(frame.Query, c.opening)
+	} else {
+		query, err = source.ReadQuery(frame.Query)
+	}
 	if err != nil {
 		_ = c.write(ctx, errorFrame{ID: frame.ID, Type: "error", Reason: err.Error()})
 		return

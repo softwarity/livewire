@@ -35,6 +35,11 @@ describe('conformance: the in-memory server', () => {
       })
       .register('still', {
         windowFor: (): LiveWindow => ({ rows: [{ id: 'always', updatedAt: 'v1' }], total: 1 }),
+      })
+      // Who opened the connection, whatever the query claims - SPEC §5.5.
+      .register('mine', {
+        readQuery: (_raw, opening) => (opening as { caller?: string } | undefined)?.caller ?? 'anonymous',
+        windowFor: (caller: string): LiveWindow => ({ rows: [{ id: caller, updatedAt: 'v1' }], total: 1 }),
       });
 
     // What a level 2 server must expose for the suite: something to do, and
@@ -58,7 +63,12 @@ describe('conformance: the in-memory server', () => {
 
   function wireOf(): Wire {
     const { server, add } = serverOf();
-    const socket = server.connect();
+    return wireTo(server, add, 'alice');
+  }
+
+  /** A connection to that server, opened by that caller. */
+  function wireTo(server: MockServer, add: () => void, caller: string): Wire {
+    const socket = server.connect({ caller });
     return {
       // The mock opens on the next tick, as a socket does.
       ready: Promise.resolve(),
@@ -75,6 +85,7 @@ describe('conformance: the in-memory server', () => {
       // Nothing here waits on a network.
       quiet: 30,
       close: () => socket.close(),
+      as: (other) => wireTo(server, add, other),
     };
   }
 

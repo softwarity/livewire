@@ -34,6 +34,14 @@ export interface Wire {
   /** How long to wait before deciding that no frame is coming. */
   quiet?: number;
   close?(): void;
+  /**
+   * Another connection to the same server, opened by that caller - SPEC §5.5.
+   *
+   * The first wire of a scenario is opened by `alice`. How a caller is named
+   * on the upgrade request is the harness's business: over a real socket, the
+   * `caller` parameter of its URL.
+   */
+  as?(caller: string): Wire;
 }
 
 export interface Scenario {
@@ -71,6 +79,9 @@ export class Conversation {
   /** Acknowledgements and notifications, kept apart from the windows. */
   private readonly acks: AckFrame[] = [];
   private readonly notices: NotifyFrame[] = [];
+
+  /** The connections opened by `as`, closed with this one. */
+  private readonly others: Wire[] = [];
 
   constructor(private readonly wire: Wire) {
     wire.onFrame((raw) => {
@@ -143,6 +154,25 @@ export class Conversation {
     return this.wire.touch();
   }
 
+  /** A conversation on another connection to the same server, opened by that caller. */
+  async as(caller: string): Promise<Conversation> {
+    if (!this.wire.as) {
+      throw new Error('this wire cannot open a connection as another caller (Wire.as), which SPEC §5.5 needs');
+    }
+    const other = this.wire.as(caller);
+    const conversation = new Conversation(other);
+    await other.ready;
+    this.others.push(other);
+    return conversation;
+  }
+
+  /** Closes the connections opened by `as`. */
+  closeOthers(): void {
+    for (const other of this.others.splice(0)) {
+      other.close?.();
+    }
+  }
+
   /** The next frame, or a failure saying what was expected. */
   next(what: string): Promise<UpdateFrame> {
     const held = this.received.shift();
@@ -187,6 +217,9 @@ function expect(condition: boolean, message: string): void {
  *
  * - `rows` — a paged list. `touch()` adds one row at the top.
  * - `still` — a window that never changes, whatever happens.
+ * - `mine` — one row whose id is who opened the socket: the `caller` the
+ *   upgrade request names, `anonymous` when it names none. Whatever the
+ *   subscription's query says.
  *
  * And, for the level 2 scenarios only:
  *
@@ -349,6 +382,35 @@ export const SCENARIOS: Scenario[] = [
 
   // ── Level 2, SPEC §6. A server may implement neither, either or both; the
   // suite skips these where `commands` says the server does not claim them.
+  {
+    name: 'a source answers by who opened the socket, not by what the query claims',
+    spec: '§5.5',
+    async run(wire) {
+      wire.subscribe('m', 'mine', { caller: 'mallory' });
+      const frame = await wire.next('a snapshot');
+      expect(frame.type === 'snapshot', `first frame was ${frame.type}`);
+      const ids = frame.type === 'snapshot' ? frame.rows.map((row) => row.id) : [];
+      expect(ids.length === 1 && ids[0] === 'alice', `expected the row 'alice', got ${JSON.stringify(ids)}`);
+    },
+  },
+  {
+    name: 'two callers asking the same query do not share a window',
+    spec: '§5.5',
+    async run(wire) {
+      try {
+        const bob = await wire.as('bob');
+        wire.subscribe('m', 'mine');
+        const mine = await wire.next("alice's snapshot");
+        bob.subscribe('m', 'mine');
+        const his = await bob.next("bob's snapshot");
+        const ids = (frame: typeof mine) => (frame.type === 'snapshot' ? frame.rows.map((row) => row.id) : []);
+        expect(ids(mine)[0] === 'alice', `alice was answered ${JSON.stringify(ids(mine))}`);
+        expect(ids(his)[0] === 'bob', `bob was answered ${JSON.stringify(ids(his))}`);
+      } finally {
+        wire.closeOthers();
+      }
+    },
+  },
   {
     name: 'answers a command with exactly one ack, carrying its id',
     spec: '§6.1',

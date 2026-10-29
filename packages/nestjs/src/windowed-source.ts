@@ -2,6 +2,7 @@ import { Observable, ReplaySubject, merge, of, share, timer } from 'rxjs';
 import { auditTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { signatureOf } from '@softwarity/livewire-protocol';
 import type { JsonObject, JsonValue, LiveWindow } from '@softwarity/livewire-protocol';
+import type { IncomingMessage } from 'http';
 import type { LiveSource } from './live-source';
 
 /**
@@ -37,8 +38,12 @@ export abstract class WindowedSource<Q> implements LiveSource<Q> {
   /** One read per distinct question, however many screens are watching it. */
   private readonly windows = new Map<string, Observable<LiveWindow>>();
 
-  /** Whatever the client sent, turned into a question this source will act on. */
-  abstract readQuery(raw: JsonValue | undefined): Q;
+  /**
+   * Whatever the client sent, turned into a question this source will act on;
+   * with the request that opened the socket, for a source that answers by who
+   * is asking - see `LiveSource.readQuery`.
+   */
+  abstract readQuery(raw: JsonValue | undefined, opening: IncomingMessage): Q;
 
   /**
    * What makes this source read again - see `onChanges`.

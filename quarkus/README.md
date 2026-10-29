@@ -78,6 +78,33 @@ from `readQuery` to refuse a question, its message being the reason.
 A source reached through a CDI proxy reads its collaborators through **methods**:
 a field read on a client proxy is the proxy's own field, not the bean's.
 
+## A source that depends on who is asking
+
+A tenant's own rows, a user's own tasks: implement `SourceWithContext<Q>` instead
+of `Source<Q>`. Same four methods, but `readQuery` is also given the request that
+opened the socket, the same for every subscription of that socket (SPEC §5.5):
+
+```java
+@LiveTopic("tasks")
+@ApplicationScoped
+public class TasksSource implements SourceWithContext<TaskQuery> {
+
+    public TaskQuery readQuery(JsonNode raw, RoutingContext opening) {
+        String owner = opening.user().subject();                  // who opened the socket
+        return new TaskQuery(owner, Queries.text(raw, "search"));  // never from raw
+    }
+
+    // Who is asking is part of the key: two callers never share a window.
+    public String key(TaskQuery q) {
+        return q.owner() + "|" + q.search();
+    }
+    …
+}
+```
+
+Who is asking comes from the opening request, never from the query: the client
+writes the query, and could put someone else there. A `Source` is untouched.
+
 ## What the registry does for you
 
 - **One read per question.** Ten clients asking the same thing share one query.

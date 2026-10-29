@@ -11,7 +11,9 @@ import { LiveTopic } from '../src/live-source';
 import { LivewireModule } from '../src/livewire.module';
 import { LiveCommand } from '../src/live-command';
 import { LivewireNotifier } from '../src/livewire.notifier';
-import { SingleWindowSource, onChanges } from '../src/windowed-source';
+import { SingleWindowSource, WindowedSource, onChanges } from '../src/windowed-source';
+import type { IncomingMessage } from 'http';
+import type { JsonValue } from '@softwarity/livewire-protocol';
 
 /**
  * The NestJS server, put through the scenarios every implementation must pass -
@@ -80,6 +82,31 @@ class StillSource extends SingleWindowSource {
   }
 }
 
+/** Who opened the socket (`?caller=` of its URL), whatever the query claims - SPEC §5.5. */
+@Injectable()
+@LiveTopic('mine')
+class MineSource extends WindowedSource<string> {
+  constructor(private readonly feed: Feed) {
+    super();
+  }
+
+  readQuery(_raw: JsonValue | undefined, opening: IncomingMessage): string {
+    return new URL(opening.url ?? '/', 'http://localhost').searchParams.get('caller') || 'anonymous';
+  }
+
+  protected keyOf(caller: string): string {
+    return caller;
+  }
+
+  protected wake(): Observable<unknown> {
+    return onChanges(this.feed.changes, 0, 0);
+  }
+
+  protected read(caller: string): Observable<LiveWindow> {
+    return of({ rows: [{ id: caller, updatedAt: 'v1' }], total: 1 });
+  }
+}
+
 /**
  * What a level 2 server must expose for the suite - SPEC §6.
  *
@@ -104,7 +131,7 @@ class FixtureCommands {
   }
 }
 
-@Module({ providers: [Feed, RowsSource, StillSource, FixtureCommands], exports: [Feed] })
+@Module({ providers: [Feed, RowsSource, StillSource, MineSource, FixtureCommands], exports: [Feed] })
 class FixtureModule {}
 
 describe('conformance: the NestJS server', () => {
@@ -129,8 +156,9 @@ describe('conformance: the NestJS server', () => {
     await app?.close();
   });
 
-  function wireOf(): Wire {
-    const socket = new WebSocket(address);
+  /** A connection opened by that caller (SPEC §5.5: `?caller=` of the upgrade request). */
+  function wireOf(caller = 'alice'): Wire {
+    const socket = new WebSocket(`${address}?caller=${encodeURIComponent(caller)}`);
     return {
       ready: new Promise<void>((resolve, reject) => {
         socket.once('open', () => resolve());
@@ -145,6 +173,7 @@ describe('conformance: the NestJS server', () => {
       },
       quiet: 250,
       close: () => socket.close(),
+      as: (other) => wireOf(other),
     };
   }
 
