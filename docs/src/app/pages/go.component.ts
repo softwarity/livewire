@@ -50,6 +50,17 @@ import { CodeComponent } from '../code/code.component';
 
     <app-code lang="go" [code]="row" />
 
+    <h3>A source that depends on who is asking</h3>
+
+    <p>
+      A tenant's own rows, a user's own tasks: the source is also given the request that opened the
+      socket, the same for every subscription of that socket. Who is asking is read there, never in the
+      query the client wrote, and it is part of the key: two callers asking the same query never share
+      a window.
+    </p>
+
+    <app-code lang="go" [code]="contextual" />
+
     <h3>What the registry does for you</h3>
 
     <ul>
@@ -141,6 +152,22 @@ func (s *MessagesSource) Read(ctx context.Context, q any) (livewire.Window, erro
     }
     return livewire.Window{Rows: rows, Total: &total}, nil
 }`;
+
+  protected readonly contextual = `type tasks struct{}
+
+// A SourceWithContext: ReadQuery also gets the request that opened the socket.
+func (t tasks) ReadQuery(raw json.RawMessage, opening *http.Request) (any, error) {
+	return taskQuery{owner: ownerOf(opening), search: searchOf(raw)}, nil // never from raw
+}
+
+func (t tasks) Key(query any) string {
+	q := query.(taskQuery)
+	return q.owner + "|" + q.search // two callers never share
+}
+
+// Wake and Read as for a Source.
+
+registry.RegisterWithContext("tasks", tasks{})`;
 
   protected readonly row = `livewire.Row{
     ID:        "m-901",

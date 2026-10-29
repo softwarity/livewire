@@ -136,9 +136,10 @@ interface Scenario {
     <app-code lang="ts" [code]="harness" />
 
     <div class="callout">
-      A conforming server exposes two topics for the suite to drive: <code>rows</code>, where a new row
-      arrives at the <em>top</em>, and <code>still</code>, which never changes. Between them they cover
-      arrival, movement, and silence.
+      A conforming server exposes three topics for the suite to drive: <code>rows</code>, where a new row
+      arrives at the <em>top</em>, <code>still</code>, which never changes, and <code>mine</code>, one row
+      naming who opened the socket (<code>?caller=</code> of its URL). Between them they cover arrival,
+      movement, silence, and who is asking.
     </div>
 
     <h3>What it caught</h3>
@@ -194,6 +195,8 @@ for (const scenario of SCENARIOS) {
       send: (frame) => socket.send(frame),
       onFrame: (listener) => socket.on('message', (data) => listener(String(data))),
       touch: () => fetch(\`http://localhost:\${port}/touch\`, { method: 'POST' }),
+      // Another connection, opened by that caller (§5.5): the first one is alice's.
+      as: (caller) => wireOf(caller),
     };
     await wire.ready;
     await scenario.run(new Conversation(wire));
@@ -242,6 +245,8 @@ cd quarkus && ./mvnw verify`;
     { spec: '§3.3', name: 'unsubscribing an unknown id is ignored' },
     { spec: '§3.3', name: 'unsubscribing one subscription leaves the others alone' },
     { spec: '§5', name: 'a late subscription gets a snapshot of where things are' },
+    { spec: '§5.5', name: 'a source answers by who opened the socket, not by what the query claims' },
+    { spec: '§5.5', name: 'two callers asking the same query do not share a window' },
     { spec: '§6.1', name: 'answers a command with exactly one ack, carrying its id — level 2' },
     { spec: '§6.1', name: 'answers a command it does not know with ok:false and a reason — level 2' },
     { spec: '§6.1', name: 'a command that changes the data reaches an open window the ordinary way — level 2' },

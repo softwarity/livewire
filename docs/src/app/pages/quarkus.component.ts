@@ -52,6 +52,21 @@ import { CodeComponent } from '../code/code.component';
       field read on a client proxy is the proxy's own field, not the bean's.
     </div>
 
+    <h3>A source that depends on who is asking</h3>
+
+    <p>
+      A tenant's own rows, a user's own tasks: implement <code>SourceWithContext&lt;Q&gt;</code> instead of
+      <code>Source&lt;Q&gt;</code>. Same four methods, but <code>readQuery</code> is also given the request
+      that opened the socket, the same for every subscription of that socket.
+    </p>
+
+    <app-code lang="java" [code]="contextual" />
+
+    <p>
+      Who is asking comes from the opening request, never from the query, and it is part of the key: two
+      callers asking the same query never share a window. A <code>Source</code> is untouched.
+    </p>
+
     <h3>Rows</h3>
 
     <p>
@@ -160,6 +175,21 @@ public class MessagesSource implements Source<MessageQuery> {
     public Window read(MessageQuery q) {
         return Window.page(rows(q), count(q));
     }
+}`;
+
+  protected readonly contextual = `@LiveTopic("tasks")
+@ApplicationScoped
+public class TasksSource implements SourceWithContext<TaskQuery> {
+
+    public TaskQuery readQuery(JsonNode raw, RoutingContext opening) {
+        String owner = opening.user().subject();                  // who opened the socket
+        return new TaskQuery(owner, Queries.text(raw, "search"));  // never from raw
+    }
+
+    public String key(TaskQuery q) {
+        return q.owner() + "|" + q.search();                      // two callers never share
+    }
+    // wake() and read(q) as for a Source
 }`;
 
   protected readonly row = `new Row("m-901", "v7",                         // the version - see the rule below

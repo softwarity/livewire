@@ -206,6 +206,16 @@ import { CodeComponent } from '../code/code.component';
       business; the transport never computes it.
     </p>
 
+    <h4>Who is asking</h4>
+
+    <p>
+      A window may depend on who opened the socket: a tenant's own rows, a user's own tasks. The server
+      hands the source the request that opened the socket, beside each subscription's query. Who is
+      asking is read there, <strong>never in the query</strong>, which the client writes and could fill
+      with someone else; and it is part of the key, so two callers asking the same query never share a
+      window.
+    </p>
+
     <h3>What is <em>not</em> in the contract</h3>
 
     <table>
@@ -216,7 +226,7 @@ import { CodeComponent } from '../code/code.component';
         </tr>
         <tr>
           <td><strong>Authorisation beyond the socket</strong></td>
-          <td>No per-topic or per-row model. A caller who may open the socket may subscribe to any topic the server exposes; finer control goes inside the source.</td>
+          <td>No per-topic or per-row model. A caller who may open the socket may subscribe to any topic the server exposes; finer control goes inside the source, which reads who is asking from the opening request.</td>
         </tr>
         <tr>
           <td><strong>Frame size</strong></td>

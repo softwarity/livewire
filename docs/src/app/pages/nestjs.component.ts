@@ -105,6 +105,17 @@ import { CodeComponent } from '../code/code.component';
       </tbody>
     </table>
 
+    <h3>A source that depends on who is asking</h3>
+
+    <p>
+      A tenant's own rows, a user's own tasks: the source is also given the request that opened the
+      socket, the same for every subscription of that socket. Who is asking is read there, never in the
+      query the client wrote, and it is part of the key: two callers asking the same query never share
+      a window.
+    </p>
+
+    <app-code lang="ts" [code]="contextual" />
+
     <h3>Commands and notifications</h3>
 
     <p>
@@ -147,6 +158,15 @@ import { CodeComponent } from '../code/code.component';
   `,
 })
 export class NestjsComponent {
+  protected readonly contextual = `// readQuery's second parameter; a source that is the same for everybody leaves it out.
+readQuery(raw: JsonValue | undefined, opening: IncomingMessage): TaskQuery {
+  return { owner: ownerOf(opening), search: searchOf(raw) }; // never from raw
+}
+
+protected keyOf(query: TaskQuery): string {
+  return \`\${query.owner}|\${query.search}\`; // two callers never share
+}`;
+
   protected readonly install = `npm install @softwarity/nestjs-livewire`;
 
   protected readonly module = `// app.module.ts
